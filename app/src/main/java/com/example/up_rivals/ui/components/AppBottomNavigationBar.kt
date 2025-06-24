@@ -40,9 +40,8 @@ fun AppBottomNavigationBar(
     )
 
     val organizerItems = listOf(
-        BottomNavItem("Torneos", Icons.Outlined.EmojiEvents, "tournaments_screen"),
         BottomNavItem("Actividades", Icons.Outlined.CalendarMonth, "activities_screen"),
-        BottomNavItem("Equipos", Icons.Outlined.People, "teams_screen"),
+        BottomNavItem("Torneos", Icons.Outlined.EmojiEvents, "tournaments_screen"),
         BottomNavItem("Solicitudes", Icons.Outlined.MailOutline, "requests_screen")
     )
 
