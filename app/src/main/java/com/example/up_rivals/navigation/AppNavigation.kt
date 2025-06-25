@@ -64,7 +64,7 @@ fun AppNavigation() {
             val screensWithBottomBar = listOf("tournaments_screen", "activities_screen", "teams_screen", "requests_screen")
 
             // El FAB solo aparece en las pantallas principales y si el usuario no es visitante
-            if (currentRoute in screensWithBottomBar && currentUserRole != UserRole.VISITOR) {
+            if (currentRoute == "tournaments_screen" && currentUserRole != UserRole.VISITOR) {
                 FloatingActionButton(
                     // 3. La acción del botón ahora es solo mostrar el diálogo
                     onClick = { showCreateConfirmationDialog = true }
@@ -104,9 +104,22 @@ fun AppNavigation() {
                 }
             }
 
-            composable("activities_screen") { ActivitiesScreen() }
-            composable("teams_screen") { TeamsScreen() }
-            composable("requests_screen") { RequestsScreen() }
+            composable("team_detail_screen") {
+                TeamDetailScreen(navController = navController)
+            }
+            composable("profile_screen") {
+                ProfileScreen(navController = navController)
+            }
+            // En NavHost dentro de AppNavigation.kt
+// Usamos "{matchId}" para indicar que aquí irá un parámetro
+            composable("match_detail_screen/{matchId}") { backStackEntry ->
+                val matchId = backStackEntry.arguments?.getString("matchId")
+                // TODO: Usar el matchId para cargar los datos reales del partido
+                MatchDetailScreen(navController = navController)
+            }
+            composable("activities_screen") { ActivitiesScreen(navController = navController) }
+            composable("teams_screen") { TeamsScreen(navController = navController) }
+            composable("requests_screen") { RequestsScreen(navController = navController) }
         }
     }
 }

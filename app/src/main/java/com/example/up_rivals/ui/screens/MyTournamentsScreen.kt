@@ -54,7 +54,7 @@ fun MyTournamentsScreen(navController: NavController) {
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = { /* TODO: Navegar al perfil */ }) {
+                    IconButton(onClick = { navController.navigate("profile_screen") })  {
                         Image(
                             painter = painterResource(id = R.drawable.ic_launcher_background),
                             contentDescription = "Perfil de usuario",

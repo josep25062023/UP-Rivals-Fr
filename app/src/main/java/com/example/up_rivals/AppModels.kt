@@ -15,4 +15,8 @@ data class BottomNavItem(
     val label: String,          // El texto que se muestra (ej. "Torneos")
     val icon: ImageVector,      // El ícono que se muestra
     val route: String           // La ruta a la que navega (ej. "home_screen")
+
 )
+
+data class TeamMember(val id: Int, val name: String, val email: String)
+data class Match(val id: Int, val sportName: String, val teams: String, val time: String)
