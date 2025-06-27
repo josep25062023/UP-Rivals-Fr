@@ -1,5 +1,6 @@
 package com.example.up_rivals
 
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.graphics.vector.ImageVector
 
 // 1. Definimos los posibles roles de usuario con un enum.
@@ -20,3 +21,6 @@ data class BottomNavItem(
 
 data class TeamMember(val id: Int, val name: String, val email: String)
 data class Match(val id: Int, val sportName: String, val teams: String, val time: String)
+data class TeamStanding(val teamId: Int, val teamName: String, val points: Int)
+data class Team(val id: Int, val name: String, val memberCount: Int, @DrawableRes val logoResId: Int)
+data class Tournament(val id: Int, val startDate: String, val name: String, val sport: String)

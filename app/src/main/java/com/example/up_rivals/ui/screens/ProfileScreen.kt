@@ -93,7 +93,7 @@ fun ProfileScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
             Text("Olivia Bennett", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("223260@ids.upchiapas.edu.mx", style = MaterialTheme.typography.bodyMedium, color = SubtleGrey)
-            Text("9612015857", style = MaterialTheme.typography.bodyMedium, color = SubtleGrey)
+            Text("ID: 957231", style = MaterialTheme.typography.bodyMedium, color = SubtleGrey) // <-- LÍNEA ACTUALIZADA
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = { /* TODO: Navegar a pantalla de editar perfil */ },

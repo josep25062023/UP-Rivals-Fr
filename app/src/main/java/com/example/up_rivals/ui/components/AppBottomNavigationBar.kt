@@ -34,11 +34,10 @@ fun AppBottomNavigationBar(
     )
 
     val playerItems = listOf(
-        BottomNavItem("Torneos", Icons.Outlined.EmojiEvents, "tournaments_screen"),
         BottomNavItem("Actividades", Icons.Outlined.CalendarMonth, "activities_screen"),
+        BottomNavItem("Torneos", Icons.Outlined.EmojiEvents, "tournaments_screen"),
         BottomNavItem("Equipos", Icons.Outlined.People, "teams_screen")
     )
-
     val organizerItems = listOf(
         BottomNavItem("Actividades", Icons.Outlined.CalendarMonth, "activities_screen"),
         BottomNavItem("Torneos", Icons.Outlined.EmojiEvents, "tournaments_screen"),

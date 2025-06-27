@@ -32,7 +32,7 @@ fun TeamDetailScreen(navController: NavController) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("Torneo futbol") }, // Esto será dinámico más adelante
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {

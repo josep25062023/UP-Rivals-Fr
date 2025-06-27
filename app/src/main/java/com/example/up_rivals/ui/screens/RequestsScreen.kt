@@ -41,7 +41,7 @@ fun RequestsScreen(navController: NavController) {
     Scaffold(
         // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("Solicitudes", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
