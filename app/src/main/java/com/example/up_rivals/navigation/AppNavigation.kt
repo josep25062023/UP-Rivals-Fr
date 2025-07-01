@@ -1,177 +1,166 @@
 package com.example.up_rivals.navigation
 
-import com.example.up_rivals.network.dto.User
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.up_rivals.UserRole
-import com.example.up_rivals.network.dto.LoginResponse
-import com.example.up_rivals.ui.components.AppBottomNavigationBar
+import com.example.up_rivals.data.UserPreferencesRepository
+import com.example.up_rivals.network.ApiClient
+import com.example.up_rivals.network.dto.User
 import com.example.up_rivals.ui.components.AppDrawerContent
 import com.example.up_rivals.ui.screens.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-
 @OptIn(ExperimentalMaterial3Api::class)
-
 @Composable
 fun AppNavigation() {
-    // ... (casi todo se queda igual)
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     var currentUserRole by remember { mutableStateOf(UserRole.VISITOR) }
-    var showCreateConfirmationDialog by remember { mutableStateOf(false) }
 
-    // --- CORREGIDO: onLoginSuccess ya no lee el rol de la respuesta ---
-    val onLoginSuccess: (User) -> Unit = { user ->
-        // Ahora leemos el rol del objeto 'user' real
-        val role = when (user.role.lowercase()) {
-            "player" -> UserRole.PLAYER
-            "organizer" -> UserRole.ORGANIZER
-            else -> UserRole.VISITOR
-        }
-        currentUserRole = role
-    }
+    // --- LÓGICA DE SESIÓN ---
+    val context = LocalContext.current
+    val userPreferencesRepository = remember { UserPreferencesRepository(context) }
+    var isLoadingSession by remember { mutableStateOf(true) } // Para mostrar una pantalla de carga
 
-    // --- CAMBIO 2: AÑADIMOS UN LaunchedEffect QUE REACCIONA AL CAMBIO DE ROL ---
-    // Este bloque se ejecutará automáticamente CADA VEZ que 'currentUserRole' cambie.
-    LaunchedEffect(currentUserRole) {
-        // Si el rol es de alguien que ha iniciado sesión Y estamos en una pantalla de autenticación...
-        val currentRoute = navController.currentBackStackEntry?.destination?.route
-        if ((currentUserRole == UserRole.PLAYER || currentUserRole == UserRole.ORGANIZER) && currentRoute == "login_screen") {
-            // ...entonces navegamos a la pantalla principal.
-            navController.navigate("tournaments_screen") {
-                popUpTo("login_screen") { inclusive = true }
+    // Efecto que se ejecuta UNA SOLA VEZ para verificar si hay una sesión guardada
+    LaunchedEffect(Unit) {
+        val token = userPreferencesRepository.authToken.first()
+        if (token.isNullOrBlank()) {
+            isLoadingSession = false // No hay token, dejamos de cargar
+        } else {
+            // Si hay token, intentamos obtener el perfil para validarlo
+            val bearerToken = "Bearer $token"
+            try {
+                val profileResponse = ApiClient.apiService.getProfile(bearerToken)
+                if (profileResponse.isSuccessful && profileResponse.body() != null) {
+                    val user = profileResponse.body()!!
+                    currentUserRole = when (user.role.lowercase()) {
+                        "player" -> UserRole.PLAYER
+                        "organizer" -> UserRole.ORGANIZER
+                        else -> UserRole.VISITOR
+                    }
+                }
+            } catch (e: Exception) {
+                // Si el token es inválido o hay error de red, el rol se queda como VISITOR
+            } finally {
+                isLoadingSession = false // Terminamos de cargar
             }
         }
     }
 
-
-    if (showCreateConfirmationDialog) {
-        AlertDialog(
-            onDismissRequest = { showCreateConfirmationDialog = false },
-            title = { Text("Confirmación") },
-            text = { Text("¿Estás seguro de que deseas crear un nuevo torneo?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showCreateConfirmationDialog = false
-                        navController.navigate("create_tournament_screen")
-                    }
-                ) { Text("Sí, crear") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCreateConfirmationDialog = false }) { Text("No") }
-            }
-        )
-    }
-
-    // --- Envolvemos TODO en el ModalNavigationDrawer ---
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            // Le pasamos el rol y la nueva acción de login
-            AppDrawerContent(
-                userRole = currentUserRole,
-                onProfileClick = {
-                    scope.launch { drawerState.close() }
-                    navController.navigate("profile_screen")
-                },
-                onSettingsClick = { /* TODO */ },
-                onLoginClick = {
-                    scope.launch { drawerState.close() }
-                    navController.navigate("login_screen")
-                },
-                onLogoutClick = {
-                    scope.launch { drawerState.close() }
-                    // Al hacer logout, reseteamos el rol a visitante
-                    currentUserRole = UserRole.VISITOR
-                    navController.navigate("login_screen") { popUpTo(0) }
-                }
-            )
+    // --- UI PRINCIPAL ---
+    if (isLoadingSession) {
+        // Pantalla de carga mientras se verifica la sesión
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
         }
-    ) {
-        // El Scaffold ahora vive dentro del NavigationDrawer
-        Scaffold(
-            floatingActionButton = {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
-                if (currentRoute == "tournaments_screen" && currentUserRole == UserRole.ORGANIZER) {
-                    FloatingActionButton(
-                        onClick = { showCreateConfirmationDialog = true }
-                    ) {
-                        Icon(Icons.Filled.Add, "Crear Torneo")
+    } else {
+        // Una vez verificada la sesión, se muestra la UI principal
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                AppDrawerContent(
+                    userRole = currentUserRole,
+                    onProfileClick = {
+                        scope.launch { drawerState.close() }
+                        navController.navigate("profile_screen")
+                    },
+                    onSettingsClick = { /* TODO */ },
+                    onLoginClick = {
+                        scope.launch { drawerState.close() }
+                        navController.navigate("login_screen")
+                    },
+                    onLogoutClick = {
+                        scope.launch {
+                            userPreferencesRepository.clearAuthToken()
+                            currentUserRole = UserRole.VISITOR
+                            drawerState.close()
+                            navController.navigate("login_screen") {
+                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                            }
+                        }
                     }
-                }
-            },
-            floatingActionButtonPosition = FabPosition.End,
-            bottomBar = {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
-                val screensWithBottomBar = listOf(
-                    "tournaments_screen",
-                    "activities_screen",
-                    "teams_screen",
-                    "requests_screen",
-                    "profile_screen"
                 )
-                if (currentRoute in screensWithBottomBar) {
-                    BottomAppBar {
-                        AppBottomNavigationBar(navController = navController, userRole = currentUserRole)
-                    }
-                }
             }
-        ) { innerPadding ->
-            NavHost(
-                navController = navController,
-                startDestination = "tournaments_screen",
-                modifier = Modifier.padding(innerPadding)
-            ) {
-                // ... (rutas de login, register, etc. se quedan igual)
-                composable("login_screen") {
-                    // --- CAMBIO 2: Le pasamos la nueva función a LoginScreen ---
-                    LoginScreen(
-                        navController = navController,
-                        onLoginSuccess = onLoginSuccess // Le pasamos la función que creamos
-                    )
-                }
-
-                composable("tournaments_screen") {
-                    val onMenuClick: () -> Unit = { scope.launch { drawerState.open() } }
-                    when (currentUserRole) {
-                        UserRole.ORGANIZER -> MyTournamentsScreen(navController = navController, onMenuClick = onMenuClick)
-                        UserRole.PLAYER -> PlayerTournamentsScreen(navController = navController, onMenuClick = onMenuClick)
-                        UserRole.VISITOR -> TournamentsScreen(navController = navController, onMenuClick = onMenuClick)
+        ) {
+            Scaffold(
+                // Aquí puedes poner tu FloatingActionButton y tu BottomBar si los necesitas
+            ) { innerPadding ->
+                NavHost(
+                    navController = navController,
+                    // Si hay un usuario, empieza en torneos; si no, en login.
+                    startDestination = if (currentUserRole == UserRole.VISITOR) "login_screen" else "tournaments_screen",
+                    modifier = Modifier.padding(innerPadding)
+                ) {
+                    composable("login_screen") {
+                        LoginScreen(
+                            navController = navController,
+                            onLoginSuccess = { user ->
+                                // Cuando el login es exitoso, actualizamos el rol...
+                                currentUserRole = when (user.role.lowercase()) {
+                                    "player" -> UserRole.PLAYER
+                                    "organizer" -> UserRole.ORGANIZER
+                                    else -> UserRole.VISITOR
+                                }
+                                // ...y navegamos
+                                navController.navigate("tournaments_screen") {
+                                    popUpTo("login_screen") { inclusive = true }
+                                }
+                            }
+                        )
                     }
-                }
 
-                // ... (el resto de tus rutas se quedan igual)
-                composable("activities_screen") { ActivitiesScreen(navController = navController) }
-                composable("teams_screen") { TeamsScreen(navController = navController) }
-                composable("requests_screen") { RequestsScreen(navController = navController) }
-                composable("profile_screen") { ProfileScreen(navController = navController) }
-                composable("create_tournament_screen") { CreateTournamentScreen(navController = navController) }
-                composable("tournament_detail_screen/{tournamentId}") { backStackEntry ->
-                    TournamentDetailScreen(navController = navController, userRole = currentUserRole)
-                }
-                composable("register_screen") { RegisterScreen(navController = navController) }
-                composable("forgot_password_screen") { ForgotPasswordScreen(navController = navController) }
-                composable("create_team_screen") {
-                    CreateTeamScreen(navController = navController)
-                }
-                composable("team_detail_screen/{teamId}") { backStackEntry ->
-                    TeamDetailScreen(navController = navController)
-                }
-                composable("match_detail_screen/{matchId}") { backStackEntry ->
-                    MatchDetailScreen(navController = navController)
+                    composable("tournaments_screen") {
+                        val onMenuClick: () -> Unit = { scope.launch { drawerState.open() } }
+                        when (currentUserRole) {
+                            UserRole.ORGANIZER -> MyTournamentsScreen(navController = navController, onMenuClick = onMenuClick)
+                            UserRole.PLAYER -> PlayerTournamentsScreen(navController = navController, onMenuClick = onMenuClick)
+                            UserRole.VISITOR -> TournamentsScreen(navController = navController, onMenuClick = onMenuClick)
+                        }
+                    }
+
+                    // --- TODAS TUS RUTAS ORIGINALES ---
+                    composable("activities_screen") { ActivitiesScreen(navController = navController) }
+                    composable("teams_screen") { TeamsScreen(navController = navController) }
+                    composable("requests_screen") { RequestsScreen(navController = navController) }
+                    composable("profile_screen") { ProfileScreen(navController = navController) }
+                    composable("create_tournament_screen") { CreateTournamentScreen(navController = navController) }
+                    composable("tournament_detail_screen/{tournamentId}") { backStackEntry ->
+                        TournamentDetailScreen(navController = navController, userRole = currentUserRole)
+                    }
+                    composable("register_screen") { RegisterScreen(navController = navController) }
+                    composable("forgot_password_screen") { ForgotPasswordScreen(navController = navController) }
+                    composable("create_team_screen") {
+                        CreateTeamScreen(navController = navController)
+                    }
+                    composable("team_detail_screen/{teamId}") { backStackEntry ->
+                        TeamDetailScreen(navController = navController)
+                    }
+                    composable("match_detail_screen/{matchId}") { backStackEntry ->
+                        MatchDetailScreen(navController = navController)
+                    }
                 }
             }
         }

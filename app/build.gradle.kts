@@ -57,6 +57,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
     // Retrofit para las llamadas a la API
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
 // Convertidor Gson para transformar JSON a objetos Kotlin/Java
