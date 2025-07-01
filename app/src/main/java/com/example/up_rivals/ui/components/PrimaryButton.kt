@@ -19,10 +19,12 @@ import com.example.up_rivals.ui.theme.UPRivalsTheme
 fun PrimaryButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         // Usamos CircleShape para obtener la forma de píldora perfecta.
         shape = CircleShape,
         // Aquí definimos los colores personalizados.

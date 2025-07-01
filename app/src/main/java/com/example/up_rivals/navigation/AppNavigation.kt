@@ -1,5 +1,6 @@
 package com.example.up_rivals.navigation
 
+import com.example.up_rivals.network.dto.User
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -11,22 +12,48 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.up_rivals.UserRole
+import com.example.up_rivals.network.dto.LoginResponse
 import com.example.up_rivals.ui.components.AppBottomNavigationBar
 import com.example.up_rivals.ui.components.AppDrawerContent
 import com.example.up_rivals.ui.screens.*
 import kotlinx.coroutines.launch
 
+
 @OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun AppNavigation() {
-    // --- Estados para controlar el Navigation Drawer ---
+    // ... (casi todo se queda igual)
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
     val navController = rememberNavController()
-    // Cambia aquí para probar los diferentes menús: VISITOR, PLAYER, ORGANIZER
-    var currentUserRole by remember { mutableStateOf(UserRole.ORGANIZER) }
+    var currentUserRole by remember { mutableStateOf(UserRole.VISITOR) }
     var showCreateConfirmationDialog by remember { mutableStateOf(false) }
+
+    // --- CORREGIDO: onLoginSuccess ya no lee el rol de la respuesta ---
+    val onLoginSuccess: (User) -> Unit = { user ->
+        // Ahora leemos el rol del objeto 'user' real
+        val role = when (user.role.lowercase()) {
+            "player" -> UserRole.PLAYER
+            "organizer" -> UserRole.ORGANIZER
+            else -> UserRole.VISITOR
+        }
+        currentUserRole = role
+    }
+
+    // --- CAMBIO 2: AÑADIMOS UN LaunchedEffect QUE REACCIONA AL CAMBIO DE ROL ---
+    // Este bloque se ejecutará automáticamente CADA VEZ que 'currentUserRole' cambie.
+    LaunchedEffect(currentUserRole) {
+        // Si el rol es de alguien que ha iniciado sesión Y estamos en una pantalla de autenticación...
+        val currentRoute = navController.currentBackStackEntry?.destination?.route
+        if ((currentUserRole == UserRole.PLAYER || currentUserRole == UserRole.ORGANIZER) && currentRoute == "login_screen") {
+            // ...entonces navegamos a la pantalla principal.
+            navController.navigate("tournaments_screen") {
+                popUpTo("login_screen") { inclusive = true }
+            }
+        }
+    }
+
 
     if (showCreateConfirmationDialog) {
         AlertDialog(
@@ -59,12 +86,14 @@ fun AppNavigation() {
                     navController.navigate("profile_screen")
                 },
                 onSettingsClick = { /* TODO */ },
-                onLoginClick = { // <-- NUEVA ACCIÓN
+                onLoginClick = {
                     scope.launch { drawerState.close() }
                     navController.navigate("login_screen")
                 },
                 onLogoutClick = {
                     scope.launch { drawerState.close() }
+                    // Al hacer logout, reseteamos el rol a visitante
+                    currentUserRole = UserRole.VISITOR
                     navController.navigate("login_screen") { popUpTo(0) }
                 }
             )
@@ -107,13 +136,16 @@ fun AppNavigation() {
                 modifier = Modifier.padding(innerPadding)
             ) {
                 // ... (rutas de login, register, etc. se quedan igual)
-                composable("login_screen") { LoginScreen(navController = navController) }
-                // ... etc.
+                composable("login_screen") {
+                    // --- CAMBIO 2: Le pasamos la nueva función a LoginScreen ---
+                    LoginScreen(
+                        navController = navController,
+                        onLoginSuccess = onLoginSuccess // Le pasamos la función que creamos
+                    )
+                }
 
                 composable("tournaments_screen") {
                     val onMenuClick: () -> Unit = { scope.launch { drawerState.open() } }
-
-                    // Usamos 'when' para decidir qué pantalla mostrar según el rol
                     when (currentUserRole) {
                         UserRole.ORGANIZER -> MyTournamentsScreen(navController = navController, onMenuClick = onMenuClick)
                         UserRole.PLAYER -> PlayerTournamentsScreen(navController = navController, onMenuClick = onMenuClick)
