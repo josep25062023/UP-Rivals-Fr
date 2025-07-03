@@ -1,103 +1,171 @@
 package com.example.up_rivals.ui.screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.up_rivals.R
-import com.example.up_rivals.Tournament
 import com.example.up_rivals.ui.components.FormTextField
 import com.example.up_rivals.ui.components.TournamentCard
 import com.example.up_rivals.ui.theme.UPRivalsTheme
+import com.example.up_rivals.viewmodels.TournamentsUiState
+import com.example.up_rivals.viewmodels.TournamentsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TournamentsScreen(
     navController: NavController,
-    onMenuClick: () -> Unit // <-- 1. CAMBIO: Recibe una función para abrir el menú
+    onMenuClick: () -> Unit
 ) {
-    val tournaments = listOf(
-        Tournament(1, "Inicia hace 2 días", "Copa Inter-Facultades", "Futbol"),
-        Tournament(2, "Hoy", "Torneo Relámpago", "Basquetbol"),
-        Tournament(3, "Próximo Sábado", "Duelo de Remates", "Voleybol")
-    )
-    var searchText by remember { mutableStateOf("") }
+    // 1. Obtenemos el ViewModel y todos los estados que necesitamos
+    val viewModel: TournamentsViewModel = viewModel()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val inProgressTournaments by viewModel.inProgressTournaments.collectAsState()
+    val upcomingTournaments by viewModel.upcomingTournaments.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
-        // --- 2. CAMBIO: Añadimos la nueva barra superior ---
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("UP-Rivals", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onMenuClick) { // Llama a la función para abrir el menú
+                    IconButton(onClick = onMenuClick) {
                         Icon(Icons.Default.Menu, contentDescription = "Abrir menú")
                     }
                 },
                 actions = {
                     IconButton(onClick = { navController.navigate("profile_screen") }) {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_background), // Placeholder
+                            painter = painterResource(id = R.drawable.img_logo), // Usamos tu logo como placeholder
                             contentDescription = "Perfil",
-                            modifier = Modifier.size(32.dp).clip(CircleShape)
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
                         )
                     }
                 }
             )
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.padding(innerPadding),
-            contentPadding = PaddingValues(all = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // --- 3. CAMBIO: Ya no necesitamos el título aquí, lo quitamos ---
+        Column(modifier = Modifier.padding(innerPadding)) {
+            // 2. Conectamos la barra de búsqueda al ViewModel
+            FormTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.onSearchQueryChange(it) },
+                labelText = "Buscar torneo",
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
 
-            // Barra de búsqueda
-            item {
-                FormTextField(
-                    value = searchText,
-                    onValueChange = { searchText = it },
-                    labelText = "Buscar torneo",
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
-                )
-            }
-
-            // Sección "Inscritos" y "Disponibles" (o "En curso")
-            item {
-                Text(
-                    text = "Inscritos", // O el texto que prefieras
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            items(tournaments) { tournament ->
-                val imageRes = when (tournament.sport.lowercase()) {
-                    "futbol" -> R.drawable.img_futbol
-                    "basquetbol" -> R.drawable.img_basquetbol
-                    "voleybol" -> R.drawable.img_voleybol
-                    else -> R.drawable.ic_launcher_background
+            // 3. Manejamos los estados de Carga y Error
+            when (uiState) {
+                is TournamentsUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 }
-                TournamentCard(
-                    startDate = tournament.startDate,
-                    tournamentName = tournament.name,
-                    sport = tournament.sport,
-                    imageResId = imageRes,
-                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}") }
-                )
+                is TournamentsUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text((uiState as TournamentsUiState.Error).message)
+                    }
+                }
+                is TournamentsUiState.Success -> {
+                    // 4. Construimos las listas desde el ViewModel
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Sección "En curso"
+                        if (inProgressTournaments.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "En curso",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                            items(inProgressTournaments) { tournament ->
+                                val imageRes = when (tournament.category.lowercase()) {
+                                    "fútbol" -> R.drawable.img_futbol
+                                    "básquetbol" -> R.drawable.img_basquetbol
+                                    "voleybol" -> R.drawable.img_voleybol
+                                    else -> R.drawable.img_logo // Imagen por defecto
+                                }
+                                TournamentCard(
+                                    startDate = tournament.startDate,
+                                    endDate = tournament.endDate,
+                                    tournamentName = tournament.name,
+                                    sport = tournament.category,
+                                    imageResId = imageRes,
+                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}") }
+                                )
+                            }
+                        }
+
+                        // Sección "Próximos"
+                        if (upcomingTournaments.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "Próximos",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(top = 16.dp)
+                                )
+                            }
+                            items(upcomingTournaments) { tournament ->
+                                val imageRes = when (tournament.category.lowercase()) {
+                                    "fútbol" -> R.drawable.img_futbol
+                                    "básquetbol" -> R.drawable.img_basquetbol
+                                    "voleybol" -> R.drawable.img_voleybol
+                                    else -> R.drawable.img_logo
+                                }
+                                TournamentCard(
+                                    startDate = tournament.startDate,
+                                    endDate = tournament.endDate,
+                                    tournamentName = tournament.name,
+                                    sport = tournament.category,
+                                    imageResId = imageRes,
+                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}") }
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -108,7 +176,6 @@ fun TournamentsScreen(
 @Composable
 fun TournamentsScreenPreview(){
     UPRivalsTheme {
-        // 4. CAMBIO: La preview necesita la nueva función, le pasamos una acción vacía
         TournamentsScreen(
             navController = rememberNavController(),
             onMenuClick = {}

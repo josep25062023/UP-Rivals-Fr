@@ -10,8 +10,8 @@ data class Tournament(
     @SerializedName("name")
     val name: String,
 
-    @SerializedName("sport")
-    val sport: String,
+    @SerializedName("category")
+    val category: String,
 
     @SerializedName("description")
     val description: String,

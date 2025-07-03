@@ -149,7 +149,7 @@ fun AppNavigation() {
             ) { innerPadding ->
                 NavHost(
                     navController = navController,
-                    startDestination = if (currentUserRole == UserRole.VISITOR) "login_screen" else "tournaments_screen",
+                    startDestination = "tournaments_screen",
                     modifier = Modifier.padding(innerPadding)
                 ) {
                     composable("login_screen") {
@@ -179,7 +179,9 @@ fun AppNavigation() {
 
                     composable("activities_screen") { ActivitiesScreen(navController = navController) }
                     composable("teams_screen") { TeamsScreen(navController = navController) }
-                    composable("requests_screen") { RequestsScreen(navController = navController) }
+                    composable("requests_screen") {
+                        RequestsScreen(navController = navController)
+                    }
                     composable("profile_screen") { ProfileScreen(navController = navController) }
                     composable("create_tournament_screen") { CreateTournamentScreen(navController = navController) }
                     composable("tournament_detail_screen/{tournamentId}") {

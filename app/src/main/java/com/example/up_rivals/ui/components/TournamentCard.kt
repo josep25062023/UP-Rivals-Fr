@@ -1,90 +1,95 @@
-// En: ui/components/TournamentCard.kt
 package com.example.up_rivals.ui.components
 
 import androidx.annotation.DrawableRes
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.up_rivals.R
-import com.example.up_rivals.ui.theme.LightBlueBackground
-import com.example.up_rivals.ui.theme.UPRivalsTheme
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
+// --- Función de ayuda para formatear las fechas ---
+private fun formatDate(dateString: String): String {
+    return try {
+        val inputFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+        val outputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        val zonedDateTime = ZonedDateTime.parse(dateString, inputFormatter)
+        zonedDateTime.format(outputFormatter)
+    } catch (e: Exception) {
+        "Fecha inválida"
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TournamentCard(
     startDate: String,
+    endDate: String, // Añadimos la fecha de fin
     tournamentName: String,
     sport: String,
     @DrawableRes imageResId: Int,
-    onClick: () -> Unit, // <-- 1. AÑADIMOS EL PARÁMETRO AQUÍ
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(targetValue = if (isPressed) 0.98f else 1.0f, label = "scale")
-
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick // <-- 2. USAMOS EL PARÁMETRO AQUÍ
-            ),
+        modifier = modifier.fillMaxWidth(),
+        onClick = onClick,
+        // Le damos el color de fondo azul
         colors = CardDefaults.cardColors(
-            containerColor = LightBlueBackground
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            containerColor = Color(0xFFE0EFFF) // Un azul claro, puedes ajustarlo
+        )
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = startDate)
-                Text(text = tournamentName, fontWeight = FontWeight.Bold)
-                Text(text = sport)
-            }
-            Spacer(modifier = Modifier.width(16.dp))
+            // Imagen circular
             Image(
                 painter = painterResource(id = imageResId),
-                contentDescription = "Imagen del torneo $tournamentName",
-                modifier = Modifier.size(80.dp),
+                contentDescription = "Logo de $sport",
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape), // La hacemos circular
                 contentScale = ContentScale.Crop
             )
+            // Columna con los textos
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = tournamentName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = sport,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                // Usamos la función para mostrar las fechas formateadas
+                Text(
+                    text = "Fecha: ${formatDate(startDate)} - ${formatDate(endDate)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
-    }
-}
-
-@Preview
-@Composable
-fun TournamentCardPreview() {
-    UPRivalsTheme {
-        TournamentCard(
-            startDate = "Inicia en 2 días",
-            tournamentName = "Summer Slam",
-            sport = "Torneo de Tenis",
-            imageResId = R.drawable.ic_launcher_background,
-            onClick = {} // <-- 3. Le damos una acción vacía a la Preview para que no dé error
-        )
     }
 }

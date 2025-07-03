@@ -1,113 +1,144 @@
 // En: ui/screens/RequestsScreen.kt
 package com.example.up_rivals.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
+import android.widget.Toast
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.up_rivals.R
+import com.example.up_rivals.network.dto.InscriptionRequestDto
 import com.example.up_rivals.ui.components.RequestCard
 import com.example.up_rivals.ui.theme.UPRivalsTheme
+import com.example.up_rivals.viewmodels.InscriptionsViewModel
+import com.example.up_rivals.viewmodels.InscriptionsUiState
+import com.example.up_rivals.viewmodels.UiEvent
+import kotlinx.coroutines.flow.collectLatest
 
-// Modelo de datos de ejemplo para una solicitud
-data class TeamRequest(val id: Int, val tournamentName: String, val teamName: String)
+// Eliminamos el data class de prueba de este archivo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RequestsScreen(navController: NavController) {
-    // --- 1. ESTADOS PARA CONTROLAR LOS DIÁLOGOS ---
+    // --- 1. Obtenemos el ViewModel y los estados ---
+    val viewModel: InscriptionsViewModel = viewModel()
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // Los estados para los diálogos ahora usarán nuestro DTO real
     var showAcceptDialog by remember { mutableStateOf(false) }
     var showDeclineDialog by remember { mutableStateOf(false) }
-    // Guardamos la solicitud sobre la que se está actuando
-    var requestToAction by remember { mutableStateOf<TeamRequest?>(null) }
+    var requestToAction by remember { mutableStateOf<InscriptionRequestDto?>(null) }
 
-    val requests = listOf(
-        TeamRequest(1, "Fútbol 7", "Toque y pase"),
-        TeamRequest(2, "Basketball Mecatrónica", "Los Robots MR"),
-        TeamRequest(3, "Volleyball Software", "Team 3")
-    )
-
-    Scaffold(
-        // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Solicitudes", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver atrás")
-                    }
+    // --- 2. Efecto para escuchar eventos (Toasts) ---
+    LaunchedEffect(key1 = Unit) {
+        viewModel.eventFlow.collectLatest { event ->
+            when (event) {
+                is UiEvent.ShowToast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
                 }
-            )
-        }
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(requests) { request ->
-                RequestCard(
-                    tournamentName = request.tournamentName,
-                    teamName = request.teamName,
-                    teamImageResId = R.drawable.ic_launcher_background,
-                    onAcceptClick = {
-                        requestToAction = request
-                        showAcceptDialog = true
-                    },
-                    onDeclineClick = {
-                        requestToAction = request
-                        showDeclineDialog = true
-                    },
-                    onCardClick = { navController.navigate("team_detail_screen/${request.id}") }
-                )
             }
         }
     }
 
-    // --- 3. DIÁLOGO PARA ACEPTAR ---
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Solicitudes", fontWeight = FontWeight.Bold) }
+            )
+        }
+    ) { innerPadding ->
+        // --- 3. Manejamos los estados de Carga, Error y Éxito ---
+        when (val state = uiState) {
+            is InscriptionsUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            is InscriptionsUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                    Text(state.message)
+                }
+            }
+            is InscriptionsUiState.Success -> {
+                if (state.requests.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No hay solicitudes pendientes.")
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.padding(innerPadding),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(state.requests) { request ->
+                            RequestCard(
+                                tournamentName = request.tournament.name,
+                                teamName = request.team.name,
+                                teamLogoUrl = request.team.logo,
+                                onAcceptClick = {
+                                    requestToAction = request
+                                    showAcceptDialog = true
+                                },
+                                onDeclineClick = {
+                                    requestToAction = request
+                                    showDeclineDialog = true
+                                },
+                                onCardClick = { navController.navigate("team_detail_screen/${request.team.id}") }
+                            )
+                        }
+                    }
+                }
+            }
+            is InscriptionsUiState.Idle -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Cargando solicitudes...")
+                }
+            }
+        }
+    }
+
+    // --- 4. Diálogos conectados al ViewModel ---
     if (showAcceptDialog) {
         AlertDialog(
             onDismissRequest = { showAcceptDialog = false },
             title = { Text("Aceptar Solicitud") },
-            text = { Text("¿Estás seguro de que quieres aceptar al equipo '${requestToAction?.teamName}' en el torneo '${requestToAction?.tournamentName}'?") },
+            text = { Text("¿Estás seguro de que quieres aceptar al equipo '${requestToAction?.team?.name}' en el torneo '${requestToAction?.tournament?.name}'?") },
             confirmButton = {
                 TextButton(onClick = {
-                    // TODO: Aquí iría la lógica para aceptar en el backend
+                    requestToAction?.let {
+                        viewModel.approveInscription(tournamentId = it.tournament.id, teamId = it.team.id)
+                    }
                     showAcceptDialog = false
                 }) { Text("Aceptar") }
             },
-            dismissButton = {
-                TextButton(onClick = { showAcceptDialog = false }) { Text("Cancelar") }
-            }
+            dismissButton = { TextButton(onClick = { showAcceptDialog = false }) { Text("Cancelar") } }
         )
     }
 
-    // --- 4. DIÁLOGO PARA DECLINAR ---
     if (showDeclineDialog) {
         AlertDialog(
             onDismissRequest = { showDeclineDialog = false },
             title = { Text("Declinar Solicitud") },
-            text = { Text("¿Estás seguro de que quieres declinar al equipo '${requestToAction?.teamName}'?") },
+            text = { Text("¿Estás seguro de que quieres declinar al equipo '${requestToAction?.team?.name}'?") },
             confirmButton = {
                 TextButton(onClick = {
-                    // TODO: Aquí iría la lógica para declinar en el backend
+                    requestToAction?.let {
+                        viewModel.rejectInscription(tournamentId = it.tournament.id, teamId = it.team.id)
+                    }
                     showDeclineDialog = false
                 }) { Text("Sí, declinar") }
             },
-            dismissButton = {
-                TextButton(onClick = { showDeclineDialog = false }) { Text("Cancelar") }
-            }
+            dismissButton = { TextButton(onClick = { showDeclineDialog = false }) { Text("Cancelar") } }
         )
     }
 }
