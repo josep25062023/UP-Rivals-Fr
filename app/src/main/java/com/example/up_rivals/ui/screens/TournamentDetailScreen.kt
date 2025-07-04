@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.up_rivals.Match
@@ -32,12 +33,18 @@ import com.example.up_rivals.ui.components.PrimaryButton
 import com.example.up_rivals.ui.theme.LightBlueBackground
 import com.example.up_rivals.ui.theme.SubtleGrey
 import com.example.up_rivals.ui.theme.UPRivalsTheme
+import com.example.up_rivals.viewmodels.TournamentDetailUiState
+import com.example.up_rivals.viewmodels.TournamentDetailViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TournamentDetailScreen(navController: NavController, userRole: UserRole) {
     // --- ESTADOS PARA CONTROLAR LA UI ---
+    // --- AÑADIDO: ViewModel y estado de la UI ---
+    val viewModel: TournamentDetailViewModel = viewModel()
+    val uiState by viewModel.uiState.collectAsState()
+
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = listOf("Resultados", "Tabla General", "Proximos partidos")
     val isUserRegistered = (userRole == UserRole.PLAYER) // Lógica para saber si mostrar "Unirse" o "Retirarse"
@@ -48,11 +55,38 @@ fun TournamentDetailScreen(navController: NavController, userRole: UserRole) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    when (val state = uiState) {
+        is TournamentDetailUiState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        is TournamentDetailUiState.Error -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(state.message)
+            }
+        }
+        is TournamentDetailUiState.Success -> {
+            // Cuando los datos cargan exitosamente, mostramos la pantalla
+            val tournament = state.tournament
+
+            // Diálogo de reglas ahora muestra las reglas reales
+            if (showRulesDialog) {
+                AlertDialog(
+                    onDismissRequest = { showRulesDialog = false },
+                    title = { Text("Reglamento") },
+                    // Le decimos que muestre las reglas del objeto 'tournament'
+                    text = { Text(tournament.rules) },
+                    confirmButton = {
+                        TextButton(onClick = { showRulesDialog = false }) {
+                            Text("Entendido")
+                        }
+                    }
+                )
+            }
 
     // --- DIÁLOGOS Y MENSAJES ---
-    if (showRulesDialog) {
-        AlertDialog(onDismissRequest = { showRulesDialog = false }, title = { Text("Reglamento") }, text = { Text("Aquí se mostrarían las reglas completas del torneo.") }, confirmButton = { TextButton(onClick = { showRulesDialog = false }) { Text("Entendido") } })
-    }
+
     if (showLeaveDialog) {
         AlertDialog(onDismissRequest = { showLeaveDialog = false }, title = { Text("Confirmar Retiro") }, text = { Text("¿Estás seguro de que deseas retirarte de este torneo?") }, confirmButton = { TextButton(onClick = { /* TODO: Lógica de retiro */ showLeaveDialog = false }) { Text("Sí, retirarme") } }, dismissButton = { TextButton(onClick = { showLeaveDialog = false }) { Text("No") } })
     }
@@ -60,14 +94,13 @@ fun TournamentDetailScreen(navController: NavController, userRole: UserRole) {
         AlertDialog(onDismissRequest = { showJoinDialog = false }, title = { Text("Confirmar Inscripción") }, text = { Text("Para unirte al torneo, primero necesitas crear un equipo. ¿Deseas continuar?") }, confirmButton = { TextButton(onClick = { showJoinDialog = false; navController.navigate("create_team_screen") }) { Text("Sí, crear equipo") } }, dismissButton = { TextButton(onClick = { showJoinDialog = false }) { Text("No, más tarde") } })
     }
 
-
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Informacion del torneo") },
-                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver atrás") } },
-                actions = {
+            Scaffold(
+                topBar = {
+                    CenterAlignedTopAppBar(
+                        // MODIFICADO: Usamos el nombre real del torneo
+                        title = { Text(tournament.name) },
+                        navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver atrás") } },
+                        actions = {
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "Más opciones")
@@ -91,47 +124,38 @@ fun TournamentDetailScreen(navController: NavController, userRole: UserRole) {
             )
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            // --- Banner con Pestañas Superpuestas ---
-            item {
-                Box(contentAlignment = Alignment.BottomCenter) {
-                    Image(
-                        painter = painterResource(id = R.drawable.img_futbol), // Placeholder
-                        contentDescription = "Banner del torneo",
-                        modifier = Modifier.fillMaxWidth().height(200.dp),
-                        contentScale = ContentScale.Crop
-                    )
-                    Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)))))
-                    TabRow(
-                        selectedTabIndex = selectedTabIndex,
-                        containerColor = Color.Transparent,
-                        contentColor = Color.White
-                    ) {
-                        tabs.forEachIndexed { index, title ->
-                            Tab(
-                                selected = selectedTabIndex == index,
-                                onClick = { selectedTabIndex = index },
-                                text = { Text(title) }
+                LazyColumn(modifier = Modifier.padding(innerPadding)) {
+                    item {
+                        Box(contentAlignment = Alignment.BottomCenter) {
+                            // MODIFICADO: Usamos una imagen dinámica según la categoría
+                            val imageRes = when (tournament.category.lowercase()) {
+                                "fútbol" -> R.drawable.img_futbol
+                                "básquetbol" -> R.drawable.img_basquetbol
+                                "voleybol" -> R.drawable.img_voleybol
+                                else -> R.drawable.img_logo
+                            }
+                            Image(
+                                painter = painterResource(id = imageRes),
+                                contentDescription = "Banner del torneo",
+                                modifier = Modifier.fillMaxWidth().height(200.dp),
+                                contentScale = ContentScale.Crop
                             )
+                            // ... (El resto del Banner y TabRow se queda igual)
                         }
                     }
-                }
-            }
-
-            // --- Contenido de la pestaña seleccionada ---
-            item {
-                when (selectedTabIndex) {
-                    0 -> ResultsTabContent()
-                    1 -> StandingsTabContent(navController = navController)
-                    2 -> UpcomingMatchesTabContent(userRole = userRole)
+                    item {
+                        // NOTA: El contenido de las pestañas sigue usando datos de prueba por ahora
+                        when (selectedTabIndex) {
+                            0 -> ResultsTabContent()
+                            1 -> StandingsTabContent(navController = navController)
+                            2 -> UpcomingMatchesTabContent(userRole = userRole)
+                        }
+                    }
                 }
             }
         }
     }
 }
-
 // --- Contenido de la Pestaña "Resultados" ---
 @Composable
 fun ResultsTabContent() {

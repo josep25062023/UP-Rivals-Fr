@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.collectLatest
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RequestsScreen(navController: NavController) {
-    // --- 1. Obtenemos el ViewModel y los estados ---
+    // 1. Obtenemos el ViewModel y los estados
     val viewModel: InscriptionsViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -39,7 +39,7 @@ fun RequestsScreen(navController: NavController) {
     var showDeclineDialog by remember { mutableStateOf(false) }
     var requestToAction by remember { mutableStateOf<InscriptionRequestDto?>(null) }
 
-    // --- 2. Efecto para escuchar eventos (Toasts) ---
+    // 2. Efecto para escuchar eventos (Toasts)
     LaunchedEffect(key1 = Unit) {
         viewModel.eventFlow.collectLatest { event ->
             when (event) {
@@ -57,7 +57,7 @@ fun RequestsScreen(navController: NavController) {
             )
         }
     ) { innerPadding ->
-        // --- 3. Manejamos los estados de Carga, Error y Éxito ---
+        // 3. Manejamos los estados de Carga, Error y Éxito
         when (val state = uiState) {
             is InscriptionsUiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -107,7 +107,7 @@ fun RequestsScreen(navController: NavController) {
         }
     }
 
-    // --- 4. Diálogos conectados al ViewModel ---
+    // 4. Diálogos conectados al ViewModel
     if (showAcceptDialog) {
         AlertDialog(
             onDismissRequest = { showAcceptDialog = false },

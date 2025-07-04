@@ -32,6 +32,11 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<List<Tournament>>
 
+    @GET("tournaments/{id}")
+    suspend fun getTournamentDetails(
+        @Path("id") tournamentId: String
+    ): Response<Tournament> // Esperamos recibir un solo objeto Tournament
+
     // --- Rutas de Inscripciones ---
     @PATCH("tournaments/{tournamentId}/inscriptions/{teamId}")
     suspend fun updateInscriptionStatus(
