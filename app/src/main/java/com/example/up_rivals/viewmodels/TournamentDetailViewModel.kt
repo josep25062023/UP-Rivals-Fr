@@ -1,43 +1,75 @@
 // En: viewmodels/TournamentDetailViewModel.kt
 package com.example.up_rivals.viewmodels
 
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.up_rivals.data.UserPreferencesRepository
 import com.example.up_rivals.network.ApiClient
+import com.example.up_rivals.network.dto.MatchDto
+import com.example.up_rivals.network.dto.StandingDto
 import com.example.up_rivals.network.dto.Tournament
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-// Estado para la pantalla de detalle del torneo
+// Estado para los detalles principales del torneo
 sealed interface TournamentDetailUiState {
     object Loading : TournamentDetailUiState
     data class Success(val tournament: Tournament) : TournamentDetailUiState
     data class Error(val message: String) : TournamentDetailUiState
 }
 
-class TournamentDetailViewModel(
-    savedStateHandle: SavedStateHandle // Herramienta para leer los argumentos de la navegación
-) : ViewModel() {
+// Estado para la tabla de posiciones
+sealed interface StandingsUiState {
+    object Idle : StandingsUiState
+    object Loading : StandingsUiState
+    data class Success(val standings: List<StandingDto>) : StandingsUiState
+    data class Error(val message: String) : StandingsUiState
+}
 
-    // Obtenemos el ID del torneo de la ruta (ej. "tournament_detail_screen/{tournamentId}")
-    private val tournamentId: String = checkNotNull(savedStateHandle["tournamentId"])
+// Estado para la lista de partidos
+sealed interface MatchesUiState {
+    object Idle : MatchesUiState
+    object Loading : MatchesUiState
+    data class Success(val matches: List<MatchDto>) : MatchesUiState
+    data class Error(val message: String) : MatchesUiState
+}
 
+class TournamentDetailViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val userPreferencesRepository = UserPreferencesRepository(application)
+
+    // --- StateFlow para los detalles del torneo ---
     private val _uiState = MutableStateFlow<TournamentDetailUiState>(TournamentDetailUiState.Loading)
     val uiState: StateFlow<TournamentDetailUiState> = _uiState.asStateFlow()
 
-    init {
-        // Cargamos los detalles tan pronto como el ViewModel se crea
-        loadTournamentDetails()
-    }
+    // --- StateFlow para la tabla de posiciones ---
+    private val _standingsUiState = MutableStateFlow<StandingsUiState>(StandingsUiState.Idle)
+    val standingsUiState: StateFlow<StandingsUiState> = _standingsUiState.asStateFlow()
 
-    private fun loadTournamentDetails() {
+    // --- StateFlow para la lista de partidos ---
+    private val _matchesUiState = MutableStateFlow<MatchesUiState>(MatchesUiState.Idle)
+    val matchesUiState: StateFlow<MatchesUiState> = _matchesUiState.asStateFlow()
+
+    fun loadTournamentDetails(tournamentId: String) {
+        // Evitamos recargar si ya tenemos los datos
+        if (_uiState.value is TournamentDetailUiState.Success) return
+
         _uiState.value = TournamentDetailUiState.Loading
         viewModelScope.launch {
             try {
-                val response = ApiClient.apiService.getTournamentDetails(tournamentId)
+                // La llamada a detalles necesita token
+                val token = userPreferencesRepository.authToken.first()
+                if (token.isNullOrBlank()) {
+                    _uiState.value = TournamentDetailUiState.Error("No autenticado.")
+                    return@launch
+                }
+                val bearerToken = "Bearer $token"
+                val response = ApiClient.apiService.getTournamentDetails(bearerToken, tournamentId)
+
                 if (response.isSuccessful && response.body() != null) {
                     _uiState.value = TournamentDetailUiState.Success(response.body()!!)
                 } else {
@@ -45,6 +77,42 @@ class TournamentDetailViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.value = TournamentDetailUiState.Error("Error de conexión: ${e.message}")
+            }
+        }
+    }
+
+    fun loadStandings(tournamentId: String) {
+        if (_standingsUiState.value is StandingsUiState.Success) return
+        _standingsUiState.value = StandingsUiState.Loading
+        viewModelScope.launch {
+            try {
+                // La tabla de posiciones es pública, no necesita token
+                val response = ApiClient.apiService.getTournamentStandings(tournamentId)
+                if (response.isSuccessful && response.body() != null) {
+                    _standingsUiState.value = StandingsUiState.Success(response.body()!!)
+                } else {
+                    _standingsUiState.value = StandingsUiState.Error("Error al cargar la tabla de posiciones.")
+                }
+            } catch (e: Exception) {
+                _standingsUiState.value = StandingsUiState.Error("Error de conexión: ${e.message}")
+            }
+        }
+    }
+
+    fun loadMatches(tournamentId: String) {
+        if (_matchesUiState.value is MatchesUiState.Success) return
+        _matchesUiState.value = MatchesUiState.Loading
+        viewModelScope.launch {
+            try {
+                // Los partidos son públicos, no necesitan token
+                val response = ApiClient.apiService.getTournamentMatches(tournamentId)
+                if (response.isSuccessful && response.body() != null) {
+                    _matchesUiState.value = MatchesUiState.Success(response.body()!!)
+                } else {
+                    _matchesUiState.value = MatchesUiState.Error("Error al cargar los partidos.")
+                }
+            } catch (e: Exception) {
+                _matchesUiState.value = MatchesUiState.Error("Error de conexión: ${e.message}")
             }
         }
     }

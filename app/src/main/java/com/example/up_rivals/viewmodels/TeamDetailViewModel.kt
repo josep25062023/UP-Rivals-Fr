@@ -1,0 +1,92 @@
+// En: viewmodels/TeamDetailViewModel.kt
+package com.example.up_rivals.viewmodels
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
+import com.example.up_rivals.data.UserPreferencesRepository
+import com.example.up_rivals.network.ApiClient
+import com.example.up_rivals.network.dto.AddMemberRequest
+import com.example.up_rivals.network.dto.TeamDetailDto
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+// Estado para la pantalla de detalle del equipo
+sealed interface TeamDetailUiState {
+    object Loading : TeamDetailUiState
+    data class Success(val teamDetail: TeamDetailDto) : TeamDetailUiState
+    data class Error(val message: String) : TeamDetailUiState
+}
+
+class TeamDetailViewModel(
+    application: Application,
+    savedStateHandle: SavedStateHandle
+) : AndroidViewModel(application) {
+
+    private val teamId: String = checkNotNull(savedStateHandle["teamId"])
+    private val userPreferencesRepository = UserPreferencesRepository(application)
+
+    private val _uiState = MutableStateFlow<TeamDetailUiState>(TeamDetailUiState.Loading)
+    val uiState: StateFlow<TeamDetailUiState> = _uiState.asStateFlow()
+
+    private val _eventFlow = MutableSharedFlow<UiEvent>()
+    val eventFlow = _eventFlow.asSharedFlow()
+
+    init {
+        loadTeamDetails()
+    }
+
+    fun loadTeamDetails() {
+        _uiState.value = TeamDetailUiState.Loading
+        viewModelScope.launch {
+            try {
+                val token = userPreferencesRepository.authToken.first()
+                if (token.isNullOrBlank()) {
+                    _uiState.value = TeamDetailUiState.Error("No autenticado.")
+                    return@launch
+                }
+                val bearerToken = "Bearer $token"
+
+                val response = ApiClient.apiService.getTeamDetails(bearerToken, teamId)
+                if (response.isSuccessful && response.body() != null) {
+                    _uiState.value = TeamDetailUiState.Success(response.body()!!)
+                } else {
+                    _uiState.value = TeamDetailUiState.Error("Error al cargar los detalles del equipo.")
+                }
+            } catch (e: Exception) {
+                _uiState.value = TeamDetailUiState.Error("Error de conexión: ${e.message}")
+            }
+        }
+    }
+
+    fun addMember(userId: String) {
+        viewModelScope.launch {
+            try {
+                val token = userPreferencesRepository.authToken.first()
+                if (token.isNullOrBlank()) {
+                    _eventFlow.emit(UiEvent.ShowToast("Error de autenticación."))
+                    return@launch
+                }
+                val bearerToken = "Bearer $token"
+                val request = AddMemberRequest(userId = userId)
+
+                val response = ApiClient.apiService.addTeamMember(bearerToken, teamId, request)
+                if (response.isSuccessful) {
+                    _eventFlow.emit(UiEvent.ShowToast("¡Integrante añadido!"))
+                    // Recargamos los detalles para que la lista de miembros se actualice
+                    loadTeamDetails()
+                } else {
+                    _eventFlow.emit(UiEvent.ShowToast("Error al añadir al integrante."))
+                }
+            } catch (e: Exception) {
+                _eventFlow.emit(UiEvent.ShowToast("Error de conexión: ${e.message}"))
+            }
+        }
+    }
+}

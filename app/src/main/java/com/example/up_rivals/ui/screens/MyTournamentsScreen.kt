@@ -163,7 +163,7 @@ fun MyTournamentsScreen(
                                     tournamentName = tournament.name,
                                     sport = tournament.category,
                                     imageResId = imageRes,
-                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}") }
+                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}/false") }
                                 )
                             }
                         }

@@ -25,8 +25,8 @@ import com.example.up_rivals.R
 import com.example.up_rivals.ui.components.FormTextField
 import com.example.up_rivals.ui.components.TournamentCard
 import com.example.up_rivals.ui.theme.UPRivalsTheme
-import com.example.up_rivals.viewmodels.TournamentsUiState
-import com.example.up_rivals.viewmodels.TournamentsViewModel
+import com.example.up_rivals.viewmodels.PlayerTournamentsViewModel
+import com.example.up_rivals.viewmodels.PlayerTournamentsUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,11 +34,12 @@ fun PlayerTournamentsScreen(
     navController: NavController,
     onMenuClick: () -> Unit
 ) {
-    // Usamos el ViewModel general de torneos
-    val viewModel: TournamentsViewModel = viewModel()
+    // 1. Usamos el nuevo PlayerTournamentsViewModel
+    val viewModel: PlayerTournamentsViewModel = viewModel()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val inProgressTournaments by viewModel.inProgressTournaments.collectAsState()
-    val upcomingTournaments by viewModel.upcomingTournaments.collectAsState()
+    // 2. Obtenemos las nuevas listas: inscritos y disponibles
+    val registeredTournaments by viewModel.registeredTournaments.collectAsState()
+    val availableTournaments by viewModel.availableTournaments.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
@@ -74,31 +75,33 @@ fun PlayerTournamentsScreen(
             )
 
             when (uiState) {
-                is TournamentsUiState.Loading -> {
+                is PlayerTournamentsUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 }
-                is TournamentsUiState.Error -> {
+                is PlayerTournamentsUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text((uiState as TournamentsUiState.Error).message)
+                        Text((uiState as PlayerTournamentsUiState.Error).message)
                     }
                 }
-                is TournamentsUiState.Success -> {
+                is PlayerTournamentsUiState.Success -> {
+                    // 3. Construimos la UI con las secciones correctas
                     LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        if (inProgressTournaments.isNotEmpty()) {
+                        // Sección "Inscritos"
+                        if (registeredTournaments.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "En curso",
+                                    text = "Inscritos",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 8.dp)
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
-                            items(inProgressTournaments) { tournament ->
+                            items(registeredTournaments) { tournament ->
                                 val imageRes = when (tournament.category.lowercase()) {
                                     "fútbol" -> R.drawable.img_futbol
                                     "básquetbol" -> R.drawable.img_basquetbol
@@ -107,25 +110,28 @@ fun PlayerTournamentsScreen(
                                 }
                                 TournamentCard(
                                     startDate = tournament.startDate,
-                                    endDate = tournament.endDate, // <-- Arreglado
+                                    endDate = tournament.endDate,
                                     tournamentName = tournament.name,
                                     sport = tournament.category,
                                     imageResId = imageRes,
-                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}") }
+                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}/true") }
                                 )
                             }
                         }
 
-                        if (upcomingTournaments.isNotEmpty()) {
+                        // Sección "Disponibles"
+                        if (availableTournaments.isNotEmpty()) {
                             item {
+                                if (registeredTournaments.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                }
                                 Text(
-                                    text = "Próximos (Disponibles)",
+                                    text = "Disponibles",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 16.dp)
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
-                            items(upcomingTournaments) { tournament ->
+                            items(availableTournaments) { tournament ->
                                 val imageRes = when (tournament.category.lowercase()) {
                                     "fútbol" -> R.drawable.img_futbol
                                     "básquetbol" -> R.drawable.img_basquetbol
@@ -134,11 +140,11 @@ fun PlayerTournamentsScreen(
                                 }
                                 TournamentCard(
                                     startDate = tournament.startDate,
-                                    endDate = tournament.endDate, // <-- Arreglado
+                                    endDate = tournament.endDate,
                                     tournamentName = tournament.name,
                                     sport = tournament.category,
                                     imageResId = imageRes,
-                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}") }
+                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}/false") }
                                 )
                             }
                         }
@@ -148,6 +154,7 @@ fun PlayerTournamentsScreen(
         }
     }
 }
+
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

@@ -1,46 +1,62 @@
 // En: ui/screens/CreateTeamScreen.kt
 package com.example.up_rivals.ui.screens
 
-import androidx.compose.foundation.Image
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.up_rivals.ui.components.FormTextField
 import com.example.up_rivals.ui.components.PrimaryButton
 import com.example.up_rivals.ui.theme.UPRivalsTheme
+import com.example.up_rivals.viewmodels.CreateTeamUiState
+import com.example.up_rivals.viewmodels.CreateTeamViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateTeamScreen(navController: NavController) {
+fun CreateTeamScreen(navController: NavController, tournamentId: String) {
+    val viewModel: CreateTeamViewModel = viewModel()
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
     var teamName by remember { mutableStateOf("") }
-    var memberId by remember { mutableStateOf("") }
-    var membersList by remember { mutableStateOf(listOf<String>()) }
+
+    // Efecto para manejar el resultado de la creación e inscripción
+    LaunchedEffect(key1 = uiState) {
+        when(uiState) {
+            is CreateTeamUiState.Success -> {
+                Toast.makeText(context, "¡Solicitud enviada exitosamente!", Toast.LENGTH_LONG).show()
+                // Volvemos a la pantalla de detalle del torneo
+                navController.popBackStack()
+            }
+            is CreateTeamUiState.Error -> {
+                Toast.makeText(context, (uiState as CreateTeamUiState.Error).message, Toast.LENGTH_LONG).show()
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Crear Nuevo Equipo", fontWeight = FontWeight.Bold) },
+                title = { Text("Crear Equipo para Torneo", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver atrás")
@@ -79,35 +95,30 @@ fun CreateTeamScreen(navController: NavController) {
                 FormTextField(value = teamName, onValueChange = { teamName = it }, labelText = "Nombre del equipo")
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Sección para añadir integrantes
-                Text("Añadir Integrantes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    FormTextField(
-                        value = memberId,
-                        onValueChange = { memberId = it },
-                        labelText = "ID del Jugador",
-                        modifier = Modifier.weight(1f)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = {
-                        if (memberId.isNotBlank()) {
-                            membersList = membersList + memberId // Añade el ID a la lista
-                            memberId = "" // Limpia el campo de texto
-                        }
-                    }) {
-                        Icon(Icons.Default.Add, contentDescription = "Añadir integrante")
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                // Lista de integrantes añadidos
-                membersList.forEach { id ->
-                    Text(" - Jugador con ID: $id")
-                }
+                // La sección para añadir integrantes ha sido eliminada temporalmente
             }
 
             // Botón para crear el equipo
             Spacer(modifier = Modifier.height(16.dp))
-            PrimaryButton(text = "Crear Equipo y Enviar Solicitud", onClick = { /* TODO */ })
+            Box(contentAlignment = Alignment.Center) {
+                PrimaryButton(
+                    text = "Crear Equipo y Enviar Solicitud",
+                    enabled = uiState !is CreateTeamUiState.Loading,
+                    onClick = {
+                        if (teamName.isNotBlank()) {
+                            viewModel.createAndInscribeTeam(
+                                teamName = teamName,
+                                tournamentId = tournamentId
+                            )
+                        } else {
+                            Toast.makeText(context, "El nombre del equipo no puede estar vacío.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
+                if (uiState is CreateTeamUiState.Loading) {
+                    CircularProgressIndicator()
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -117,6 +128,6 @@ fun CreateTeamScreen(navController: NavController) {
 @Composable
 fun CreateTeamScreenPreview() {
     UPRivalsTheme {
-        CreateTeamScreen(rememberNavController())
+        CreateTeamScreen(rememberNavController(), tournamentId = "123")
     }
 }

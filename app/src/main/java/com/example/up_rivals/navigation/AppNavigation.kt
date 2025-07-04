@@ -11,10 +11,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.up_rivals.UserRole
 import com.example.up_rivals.data.UserPreferencesRepository
 import com.example.up_rivals.network.ApiClient
@@ -183,17 +185,45 @@ fun AppNavigation() {
                         RequestsScreen(navController = navController)
                     }
                     composable("profile_screen") { ProfileScreen(navController = navController) }
-                    composable("create_tournament_screen") { CreateTournamentScreen(navController = navController) }
-                    composable("tournament_detail_screen/{tournamentId}") {
-                        TournamentDetailScreen(navController = navController, userRole = currentUserRole)
+                    composable("create_team_screen/{tournamentId}") { backStackEntry ->
+                        val tournamentId = backStackEntry.arguments?.getString("tournamentId") ?: ""
+                        CreateTeamScreen(
+                            navController = navController,
+                            tournamentId = tournamentId
+                        )
+                    }
+                    composable(
+                        route = "tournament_detail_screen/{tournamentId}/{isRegistered}",
+                        arguments = listOf(
+                            navArgument("tournamentId") { type = NavType.StringType },
+                            navArgument("isRegistered") { type = NavType.BoolType }
+                        )
+                    ) { backStackEntry ->
+                        val tournamentId = backStackEntry.arguments?.getString("tournamentId") ?: ""
+                        val isRegistered = backStackEntry.arguments?.getBoolean("isRegistered") ?: false
+
+                        TournamentDetailScreen(
+                            navController = navController,
+                            userRole = currentUserRole,
+                            tournamentId = tournamentId,
+                            isRegistered = isRegistered
+                        )
                     }
                     composable("register_screen") { RegisterScreen(navController = navController) }
                     composable("forgot_password_screen") { ForgotPasswordScreen(navController = navController) }
-                    composable("create_team_screen") {
-                        CreateTeamScreen(navController = navController)
+                    composable("create_team_screen/{tournamentId}") { backStackEntry ->
+                        val tournamentId = backStackEntry.arguments?.getString("tournamentId") ?: ""
+                        CreateTeamScreen(
+                            navController = navController,
+                            tournamentId = tournamentId
+                        )
                     }
-                    composable("team_detail_screen/{teamId}") {
-                        TeamDetailScreen(navController = navController)
+                    composable("team_detail_screen/{teamId}") { backStackEntry ->
+                        val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                        TeamDetailScreen(
+                            navController = navController,
+                            teamId = teamId
+                        )
                     }
                     composable("match_detail_screen/{matchId}") {
                         MatchDetailScreen(navController = navController)

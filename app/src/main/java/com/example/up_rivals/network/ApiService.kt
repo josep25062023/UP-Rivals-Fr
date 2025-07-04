@@ -1,4 +1,3 @@
-// En: network/ApiService.kt
 package com.example.up_rivals.network
 
 import com.example.up_rivals.network.dto.*
@@ -28,14 +27,29 @@ interface ApiService {
     suspend fun getTournaments(): Response<List<Tournament>>
 
     @GET("tournaments/my-tournaments")
-    suspend fun getMyTournaments(
-        @Header("Authorization") token: String
-    ): Response<List<Tournament>>
+    suspend fun getMyTournaments(@Header("Authorization") token: String): Response<List<Tournament>>
 
     @GET("tournaments/{id}")
     suspend fun getTournamentDetails(
+        @Header("Authorization") token: String,
         @Path("id") tournamentId: String
-    ): Response<Tournament> // Esperamos recibir un solo objeto Tournament
+    ): Response<Tournament>
+
+    @GET("tournaments/{id}/standings")
+    suspend fun getTournamentStandings(
+        @Path("id") tournamentId: String
+    ): Response<List<StandingDto>>
+
+    @GET("tournaments/{id}/matches")
+    suspend fun getTournamentMatches(
+        @Path("id") tournamentId: String
+    ): Response<List<MatchDto>>
+
+    // --- FUNCIÓN QUE FALTABA ---
+    @GET("player/my-tournaments")
+    suspend fun getPlayerMyTournaments(
+        @Header("Authorization") token: String
+    ): Response<List<Tournament>>
 
     // --- Rutas de Inscripciones ---
     @PATCH("tournaments/{tournamentId}/inscriptions/{teamId}")
@@ -50,4 +64,31 @@ interface ApiService {
     suspend fun getOrganizerInscriptions(
         @Header("Authorization") token: String
     ): Response<List<InscriptionRequestDto>>
+
+    // --- Rutas de Equipos ---
+    @GET("teams/{id}")
+    suspend fun getTeamDetails(
+        @Header("Authorization") token: String,
+        @Path("id") teamId: String
+    ): Response<TeamDetailDto>
+
+    @POST("teams/{id}/members")
+    suspend fun addTeamMember(
+        @Header("Authorization") token: String,
+        @Path("id") teamId: String,
+        @Body request: AddMemberRequest
+    ): Response<Unit>
+
+    @POST("teams")
+    suspend fun createTeam(
+        @Header("Authorization") token: String,
+        @Body request: CreateTeamRequest
+    ): Response<Team>
+
+    @POST("tournaments/{tournamentId}/inscribe/{teamId}")
+    suspend fun inscribeTeam(
+        @Header("Authorization") token: String,
+        @Path("tournamentId") tournamentId: String,
+        @Path("teamId") teamId: String
+    ): Response<Unit>
 }
