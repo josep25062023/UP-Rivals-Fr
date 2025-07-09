@@ -1,5 +1,7 @@
 package com.example.up_rivals.ui.screens
 
+import android.widget.Toast
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -30,10 +32,15 @@ import coil.request.ImageRequest
 import com.example.up_rivals.R
 import com.example.up_rivals.UserRole
 import com.example.up_rivals.network.dto.MatchDto
+import com.example.up_rivals.network.dto.StandingDto
+import com.example.up_rivals.network.dto.Tournament
+import com.example.up_rivals.ui.components.PrimaryButton
 import com.example.up_rivals.ui.theme.LightBlueBackground
 import com.example.up_rivals.ui.theme.SubtleGrey
 import com.example.up_rivals.ui.theme.UPRivalsTheme
 import com.example.up_rivals.viewmodels.*
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -45,21 +52,41 @@ fun TournamentDetailScreen(
     navController: NavController,
     userRole: UserRole,
     tournamentId: String,
-    isRegistered: Boolean // Parámetro para saber si el jugador está inscrito
+    isRegistered: Boolean
 ) {
     val viewModel: TournamentDetailViewModel = viewModel()
     val detailState by viewModel.uiState.collectAsState()
     val standingsState by viewModel.standingsUiState.collectAsState()
     val matchesState by viewModel.matchesUiState.collectAsState()
+    val context = LocalContext.current
+
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    var showMenu by remember { mutableStateOf(false) }
+    var showRulesDialog by remember { mutableStateOf(false) }
+    var showLeaveDialog by remember { mutableStateOf(false) }
+    var showJoinDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(key1 = tournamentId) {
         viewModel.loadTournamentDetails(tournamentId)
     }
 
-    var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Resultados", "Tabla General", "Partidos")
-    var showRulesDialog by remember { mutableStateOf(false) }
-    var showJoinDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(key1 = Unit) {
+        viewModel.eventFlow.collectLatest { event: DetailScreenEvent ->
+        when (event) {
+                is DetailScreenEvent.ShowToast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                }
+                is DetailScreenEvent.DeletionSuccess -> {
+                    Toast.makeText(context, "Torneo eliminado", Toast.LENGTH_SHORT).show()
+                    navController.popBackStack()
+                }
+
+                else -> {
+                }
+            }
+        }
+    }
 
     when (val state = detailState) {
         is TournamentDetailUiState.Loading -> {
@@ -77,6 +104,12 @@ fun TournamentDetailScreen(
             if (showJoinDialog) {
                 AlertDialog(onDismissRequest = { showJoinDialog = false }, title = { Text("Confirmar Inscripción") }, text = { Text("Para unirte al torneo, primero necesitas crear un equipo. ¿Deseas continuar?") }, confirmButton = { TextButton(onClick = { showJoinDialog = false; navController.navigate("create_team_screen/${tournament.id}") }) { Text("Sí, crear equipo") } }, dismissButton = { TextButton(onClick = { showJoinDialog = false }) { Text("No, más tarde") } })
             }
+            if (showDeleteDialog) {
+                AlertDialog(onDismissRequest = { showDeleteDialog = false }, title = { Text("Confirmar Eliminación") }, text = { Text("¿Estás seguro de que deseas eliminar el torneo '${tournament.name}'? Esta acción no se puede deshacer.") }, confirmButton = { TextButton(onClick = { viewModel.deleteTournament(tournamentId); showDeleteDialog = false }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Sí, eliminar") } }, dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") } })
+            }
+            if (showLeaveDialog) {
+                AlertDialog(onDismissRequest = { showLeaveDialog = false }, title = { Text("Confirmar Retiro") }, text = { Text("¿Estás seguro de que deseas retirarte de este torneo?") }, confirmButton = { TextButton(onClick = { /* TODO */ showLeaveDialog = false }) { Text("Sí, retirarme") } }, dismissButton = { TextButton(onClick = { showLeaveDialog = false }) { Text("No") } })
+            }
 
             Scaffold(
                 topBar = {
@@ -85,19 +118,18 @@ fun TournamentDetailScreen(
                         navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver atrás") } },
                         actions = {
                             Box {
-                                var showMenu by remember { mutableStateOf(false) }
                                 IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, "Más opciones") }
                                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                                    DropdownMenuItem(text = { Text("Ver reglamento") }, onClick = { showRulesDialog = true; showMenu = false })
                                     if (userRole == UserRole.PLAYER) {
                                         if (isRegistered) {
-                                            DropdownMenuItem(text = { Text("Ver reglamento") }, onClick = { showRulesDialog = true; showMenu = false })
-                                            DropdownMenuItem(text = { Text("Retirarse del torneo") }, onClick = { /* TODO */ showMenu = false })
+                                            DropdownMenuItem(text = { Text("Retirarse del torneo") }, onClick = { showLeaveDialog = true; showMenu = false })
                                         } else {
-                                            DropdownMenuItem(text = { Text("Ver reglamento") }, onClick = { showRulesDialog = true; showMenu = false })
                                             DropdownMenuItem(text = { Text("Unirme al torneo") }, onClick = { showJoinDialog = true; showMenu = false })
                                         }
-                                    } else {
-                                        DropdownMenuItem(text = { Text("Ver reglamento") }, onClick = { showRulesDialog = true; showMenu = false })
+                                    }
+                                    if (userRole == UserRole.ORGANIZER) {
+                                        DropdownMenuItem(text = { Text("Eliminar Torneo") }, onClick = { showDeleteDialog = true; showMenu = false })
                                     }
                                 }
                             }
@@ -113,11 +145,26 @@ fun TournamentDetailScreen(
                             onTabClick = { index ->
                                 selectedTabIndex = index
                                 when (index) {
-                                    0, 2 -> viewModel.loadMatches(tournamentId) // Carga partidos para "Resultados" y "Próximos"
-                                    1 -> viewModel.loadStandings(tournamentId) // Carga tabla para "Tabla General"
+                                    0, 2 -> viewModel.loadMatches(tournamentId)
+                                    1 -> viewModel.loadStandings(tournamentId)
                                 }
                             }
                         )
+                    }
+                    if (userRole == UserRole.VISITOR) {
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                PrimaryButton(
+                                    text = "Inicia Sesión o Regístrate para Unirte",
+                                    onClick = { navController.navigate("login_screen") }
+                                )
+                            }
+                        }
                     }
                     item {
                         when (selectedTabIndex) {
@@ -135,7 +182,7 @@ fun TournamentDetailScreen(
 // --- SECCIÓN DE PESTAÑAS (TABS) ---
 
 @Composable
-fun BannerAndTabs(tournament: com.example.up_rivals.network.dto.Tournament, selectedTabIndex: Int, onTabClick: (Int) -> Unit) {
+fun BannerAndTabs(tournament: Tournament, selectedTabIndex: Int, onTabClick: (Int) -> Unit) {
     val tabs = listOf("Resultados", "Tabla General", "Partidos")
     Box(contentAlignment = Alignment.BottomCenter) {
         val imageRes = when (tournament.category.lowercase()) {
@@ -144,7 +191,7 @@ fun BannerAndTabs(tournament: com.example.up_rivals.network.dto.Tournament, sele
             "voleybol" -> R.drawable.img_voleybol
             else -> R.drawable.img_logo
         }
-        Image(painter = painterResource(id = imageRes), contentDescription = "Banner", modifier = Modifier.fillMaxWidth().height(200.dp), contentScale = ContentScale.Crop)
+        Image(painter = painterResource(id = imageRes), contentDescription = "Banner del torneo", modifier = Modifier.fillMaxWidth().height(200.dp), contentScale = ContentScale.Crop)
         Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)))))
         Column {
             Text(text = tournament.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
@@ -265,7 +312,7 @@ fun MatchResultRow(match: MatchDto) {
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 8.dp)) {
             if (match.status.lowercase() == "finished") {
-                Text(text = "${match.scoreA} - ${match.scoreB}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = "${match.scoreA ?: '?'} - ${match.scoreB ?: '?'}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             } else {
                 Text(text = "VS", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 Text(text = formatMatchDate(match.matchDate), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -296,6 +343,6 @@ private fun formatMatchDate(dateString: String): String {
 @Composable
 fun TournamentDetailScreenPreview() {
     UPRivalsTheme {
-        TournamentDetailScreen(rememberNavController(), UserRole.PLAYER, "123", isRegistered = true)
+        TournamentDetailScreen(rememberNavController(), UserRole.ORGANIZER, "123", isRegistered = false)
     }
 }

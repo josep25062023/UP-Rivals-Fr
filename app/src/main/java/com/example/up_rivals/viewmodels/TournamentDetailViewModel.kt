@@ -12,6 +12,8 @@ import com.example.up_rivals.network.dto.Tournament
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -38,6 +40,11 @@ sealed interface MatchesUiState {
     data class Error(val message: String) : MatchesUiState
 }
 
+sealed interface DetailScreenEvent {
+    data class ShowToast(val message: String) : DetailScreenEvent
+    object DeletionSuccess : DetailScreenEvent
+}
+
 class TournamentDetailViewModel(application: Application) : AndroidViewModel(application) {
 
     private val userPreferencesRepository = UserPreferencesRepository(application)
@@ -53,6 +60,9 @@ class TournamentDetailViewModel(application: Application) : AndroidViewModel(app
     // --- StateFlow para la lista de partidos ---
     private val _matchesUiState = MutableStateFlow<MatchesUiState>(MatchesUiState.Idle)
     val matchesUiState: StateFlow<MatchesUiState> = _matchesUiState.asStateFlow()
+
+    private val _eventFlow = MutableSharedFlow<DetailScreenEvent>()
+    val eventFlow = _eventFlow.asSharedFlow()
 
     fun loadTournamentDetails(tournamentId: String) {
         // Evitamos recargar si ya tenemos los datos
@@ -113,6 +123,29 @@ class TournamentDetailViewModel(application: Application) : AndroidViewModel(app
                 }
             } catch (e: Exception) {
                 _matchesUiState.value = MatchesUiState.Error("Error de conexión: ${e.message}")
+            }
+        }
+    }
+
+    fun deleteTournament(tournamentId: String) {
+        viewModelScope.launch {
+            try {
+                val token = userPreferencesRepository.authToken.first()
+                if (token.isNullOrBlank()) {
+                    _eventFlow.emit(DetailScreenEvent.ShowToast("Error de autenticación."))
+                    return@launch
+                }
+                val bearerToken = "Bearer $token"
+                val response = ApiClient.apiService.deleteTournament(bearerToken, tournamentId)
+
+                if (response.isSuccessful) {
+                    _eventFlow.emit(DetailScreenEvent.ShowToast("Torneo eliminado exitosamente."))
+                    _eventFlow.emit(DetailScreenEvent.DeletionSuccess) // Evento para navegar hacia atrás
+                } else {
+                    _eventFlow.emit(DetailScreenEvent.ShowToast("Error al eliminar el torneo."))
+                }
+            } catch (e: Exception) {
+                _eventFlow.emit(DetailScreenEvent.ShowToast("Error de conexión."))
             }
         }
     }

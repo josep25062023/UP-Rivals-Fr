@@ -91,4 +91,16 @@ interface ApiService {
         @Path("tournamentId") tournamentId: String,
         @Path("teamId") teamId: String
     ): Response<Unit>
+
+    @DELETE("tournaments/{id}")
+    suspend fun deleteTournament(
+        @Header("Authorization") token: String,
+        @Path("id") tournamentId: String
+    ): Response<Unit> // No esperamos datos de vuelta, solo una confirmación
+
+    // --- FUNCIÓN AÑADIDA ---
+    @GET("player/teams")
+    suspend fun getPlayerTeams(
+        @Header("Authorization") token: String
+    ): Response<List<PlayerTeamDto>> // Esperamos una lista de nuestro nuevo DTO
 }

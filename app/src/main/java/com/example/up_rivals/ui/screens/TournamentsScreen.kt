@@ -1,5 +1,6 @@
 package com.example.up_rivals.ui.screens
 
+import com.valentinilk.shimmer.shimmer
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.up_rivals.R
 import com.example.up_rivals.ui.components.FormTextField
 import com.example.up_rivals.ui.components.TournamentCard
+import com.example.up_rivals.ui.components.TournamentCardPlaceholder
 import com.example.up_rivals.ui.theme.UPRivalsTheme
 import com.example.up_rivals.viewmodels.TournamentsUiState
 import com.example.up_rivals.viewmodels.TournamentsViewModel
@@ -94,8 +96,16 @@ fun TournamentsScreen(
             // 3. Manejamos los estados de Carga y Error
             when (uiState) {
                 is TournamentsUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                    // Usamos LazyColumn para mostrar varios placeholders si la pantalla es grande
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(5) { // Muestra 5 placeholders brillantes
+                            Box(modifier = Modifier.shimmer()) {
+                                TournamentCardPlaceholder()
+                            }
+                        }
                     }
                 }
                 is TournamentsUiState.Error -> {
@@ -132,7 +142,7 @@ fun TournamentsScreen(
                                     tournamentName = tournament.name,
                                     sport = tournament.category,
                                     imageResId = imageRes,
-                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}") }
+                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}/false") }
                                 )
                             }
                         }
@@ -160,7 +170,7 @@ fun TournamentsScreen(
                                     tournamentName = tournament.name,
                                     sport = tournament.category,
                                     imageResId = imageRes,
-                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}") }
+                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}/false") }
                                 )
                             }
                         }

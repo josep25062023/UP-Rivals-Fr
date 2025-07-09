@@ -1,4 +1,3 @@
-// En: ui/screens/ProfileScreen.kt
 package com.example.up_rivals.ui.screens
 
 import androidx.compose.foundation.Image
@@ -15,26 +14,33 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.example.up_rivals.R
 import com.example.up_rivals.ui.components.StatCard
 import com.example.up_rivals.ui.theme.LightBlueBackground
 import com.example.up_rivals.ui.theme.SubtleGrey
 import com.example.up_rivals.ui.theme.UPRivalsTheme
+import com.example.up_rivals.viewmodels.ProfileViewModel
+import com.example.up_rivals.viewmodels.ProfileUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
+    // --- 1. Obtenemos el ViewModel y su estado ---
+    val viewModel: ProfileViewModel = viewModel()
+    val uiState by viewModel.uiState.collectAsState()
+
     var notificationsEnabled by remember { mutableStateOf(true) }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    // --- DIÁLOGO DE CONFIRMACIÓN ---
-    // Este bloque 'if' se asegura de que el diálogo solo se muestre si la variable es 'true'
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -44,20 +50,15 @@ fun ProfileScreen(navController: NavController) {
                 TextButton(
                     onClick = {
                         showLogoutDialog = false
-                        // NAVEGACIÓN ESPECIAL: Nos lleva al login y borra todas las pantallas anteriores
+                        // TODO: Aquí deberíamos llamar a una función de logout en AppNavigation
+                        // que borre el token y luego navegue. Por ahora, solo navega.
                         navController.navigate("login_screen") {
-                            popUpTo(0) // Esto limpia el historial de navegación
+                            popUpTo(0)
                         }
                     }
-                ) {
-                    Text("Sí, cerrar sesión")
-                }
+                ) { Text("Sí, cerrar sesión") }
             },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("No")
-                }
-            }
+            dismissButton = { TextButton(onClick = { showLogoutDialog = false }) { Text("No") } }
         )
     }
 
@@ -73,73 +74,82 @@ fun ProfileScreen(navController: NavController) {
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = 24.dp)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // --- Sección de Información del Perfil ---
-            Spacer(modifier = Modifier.height(16.dp))
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background), // Placeholder
-                contentDescription = "Foto de perfil",
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Olivia Bennett", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("223260@ids.upchiapas.edu.mx", style = MaterialTheme.typography.bodyMedium, color = SubtleGrey)
-            Text("ID: 957231", style = MaterialTheme.typography.bodyMedium, color = SubtleGrey) // <-- LÍNEA ACTUALIZADA
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = { /* TODO: Navegar a pantalla de editar perfil */ },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = LightBlueBackground),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-            ) {
-                Text("Editar perfil", color = MaterialTheme.colorScheme.onSurface)
+        // --- 2. Manejamos los estados de Carga, Error y Éxito ---
+        when (val state = uiState) {
+            is ProfileUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-            Spacer(modifier = Modifier.height(24.dp))
+            is ProfileUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                    Text(state.message)
+                }
+            }
+            is ProfileUiState.Success -> {
+                // Obtenemos el usuario real del estado
+                val user = state.user
 
-            // --- Sección de Datos ---
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                Text("Datos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                StatCard(label = "Torneos", value = "120", modifier = Modifier.weight(1f))
-                StatCard(label = "Resultados\nPendientes", value = "300", modifier = Modifier.weight(1f))
-                StatCard(label = "Terminados", value = "150", modifier = Modifier.weight(1f))
-            }
-            Spacer(modifier = Modifier.height(24.dp))
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .padding(horizontal = 24.dp)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // --- 3. Mostramos la información real del usuario ---
+                    AsyncImage(
+                        model = user.profilePic,
+                        placeholder = painterResource(id = R.drawable.img_logo),
+                        error = painterResource(id = R.drawable.img_logo),
+                        contentDescription = "Foto de perfil",
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(user.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(user.email, style = MaterialTheme.typography.bodyMedium, color = SubtleGrey)
+                    Text("ID: ${user.id}", style = MaterialTheme.typography.bodyMedium, color = SubtleGrey)
+                    Spacer(modifier = Modifier.height(24.dp))
 
-            // --- Sección de Configuración ---
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                Text("Configuración", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Notifications", modifier = Modifier.weight(1f))
-                Switch(checked = notificationsEnabled, onCheckedChange = { notificationsEnabled = it })
-            }
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // 2. CAMBIAMOS LA ACCIÓN ONCLICK
-                    // Ahora, al ser presionada, simplemente activa nuestro interruptor para mostrar el diálogo
-                    .clickable { showLogoutDialog = true },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Cerrar sesion", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.error)
-                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesión", tint = MaterialTheme.colorScheme.error)
+                    // --- El resto de la UI se queda igual ---
+                    Button(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = LightBlueBackground), elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)) {
+                        Text("Editar perfil", color = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+                        Text("Datos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        StatCard(label = "Torneos", value = "120", modifier = Modifier.weight(1f))
+                        StatCard(label = "Resultados\nPendientes", value = "300", modifier = Modifier.weight(1f))
+                        StatCard(label = "Terminados", value = "150", modifier = Modifier.weight(1f))
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+                        Text("Configuración", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Notifications", modifier = Modifier.weight(1f))
+                        Switch(checked = notificationsEnabled, onCheckedChange = { notificationsEnabled = it })
+                    }
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showLogoutDialog = true },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Cerrar sesion", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.error)
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesión", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         }
     }

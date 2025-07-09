@@ -68,5 +68,6 @@ dependencies {
     // ViewModel para Jetpack Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.1")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.valentinilk.shimmer:compose-shimmer:1.2.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
