@@ -1,7 +1,7 @@
-// En: viewmodels/TournamentDetailViewModel.kt
 package com.example.up_rivals.viewmodels
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.up_rivals.data.UserPreferencesRepository
@@ -17,14 +17,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-// Estado para los detalles principales del torneo
+// --- Estados de la UI ---
 sealed interface TournamentDetailUiState {
     object Loading : TournamentDetailUiState
     data class Success(val tournament: Tournament) : TournamentDetailUiState
     data class Error(val message: String) : TournamentDetailUiState
 }
 
-// Estado para la tabla de posiciones
 sealed interface StandingsUiState {
     object Idle : StandingsUiState
     object Loading : StandingsUiState
@@ -32,7 +31,6 @@ sealed interface StandingsUiState {
     data class Error(val message: String) : StandingsUiState
 }
 
-// Estado para la lista de partidos
 sealed interface MatchesUiState {
     object Idle : MatchesUiState
     object Loading : MatchesUiState
@@ -40,6 +38,7 @@ sealed interface MatchesUiState {
     data class Error(val message: String) : MatchesUiState
 }
 
+// --- Eventos de una sola vez ---
 sealed interface DetailScreenEvent {
     data class ShowToast(val message: String) : DetailScreenEvent
     object DeletionSuccess : DetailScreenEvent
@@ -49,15 +48,12 @@ class TournamentDetailViewModel(application: Application) : AndroidViewModel(app
 
     private val userPreferencesRepository = UserPreferencesRepository(application)
 
-    // --- StateFlow para los detalles del torneo ---
     private val _uiState = MutableStateFlow<TournamentDetailUiState>(TournamentDetailUiState.Loading)
     val uiState: StateFlow<TournamentDetailUiState> = _uiState.asStateFlow()
 
-    // --- StateFlow para la tabla de posiciones ---
     private val _standingsUiState = MutableStateFlow<StandingsUiState>(StandingsUiState.Idle)
     val standingsUiState: StateFlow<StandingsUiState> = _standingsUiState.asStateFlow()
 
-    // --- StateFlow para la lista de partidos ---
     private val _matchesUiState = MutableStateFlow<MatchesUiState>(MatchesUiState.Idle)
     val matchesUiState: StateFlow<MatchesUiState> = _matchesUiState.asStateFlow()
 
@@ -65,13 +61,10 @@ class TournamentDetailViewModel(application: Application) : AndroidViewModel(app
     val eventFlow = _eventFlow.asSharedFlow()
 
     fun loadTournamentDetails(tournamentId: String) {
-        // Evitamos recargar si ya tenemos los datos
         if (_uiState.value is TournamentDetailUiState.Success) return
-
         _uiState.value = TournamentDetailUiState.Loading
         viewModelScope.launch {
             try {
-                // La llamada a detalles necesita token
                 val token = userPreferencesRepository.authToken.first()
                 if (token.isNullOrBlank()) {
                     _uiState.value = TournamentDetailUiState.Error("No autenticado.")
@@ -96,7 +89,6 @@ class TournamentDetailViewModel(application: Application) : AndroidViewModel(app
         _standingsUiState.value = StandingsUiState.Loading
         viewModelScope.launch {
             try {
-                // La tabla de posiciones es pública, no necesita token
                 val response = ApiClient.apiService.getTournamentStandings(tournamentId)
                 if (response.isSuccessful && response.body() != null) {
                     _standingsUiState.value = StandingsUiState.Success(response.body()!!)
@@ -110,7 +102,7 @@ class TournamentDetailViewModel(application: Application) : AndroidViewModel(app
     }
 
     fun loadMatches(tournamentId: String) {
-        if (_matchesUiState.value is MatchesUiState.Success) return
+        // Ya no detenemos la carga. Siempre que se llame, se refrescará.
         _matchesUiState.value = MatchesUiState.Loading
         viewModelScope.launch {
             try {
@@ -140,12 +132,35 @@ class TournamentDetailViewModel(application: Application) : AndroidViewModel(app
 
                 if (response.isSuccessful) {
                     _eventFlow.emit(DetailScreenEvent.ShowToast("Torneo eliminado exitosamente."))
-                    _eventFlow.emit(DetailScreenEvent.DeletionSuccess) // Evento para navegar hacia atrás
+                    _eventFlow.emit(DetailScreenEvent.DeletionSuccess)
                 } else {
                     _eventFlow.emit(DetailScreenEvent.ShowToast("Error al eliminar el torneo."))
                 }
             } catch (e: Exception) {
                 _eventFlow.emit(DetailScreenEvent.ShowToast("Error de conexión."))
+            }
+        }
+    }
+
+    fun generateSchedule(tournamentId: String) {
+        viewModelScope.launch {
+            try {
+                val token = userPreferencesRepository.authToken.first()
+                if (token.isNullOrBlank()) {
+                    _eventFlow.emit(DetailScreenEvent.ShowToast("Error de autenticación."))
+                    return@launch
+                }
+                val bearerToken = "Bearer $token"
+                val response = ApiClient.apiService.generateSchedule(bearerToken, tournamentId)
+
+                if (response.isSuccessful) {
+                    _eventFlow.emit(DetailScreenEvent.ShowToast("Partidos generados exitosamente. Actualizando..."))
+                    loadMatches(tournamentId)
+                } else {
+                    _eventFlow.emit(DetailScreenEvent.ShowToast("Error al generar los partidos."))
+                }
+            } catch (e: Exception) {
+                _eventFlow.emit(DetailScreenEvent.ShowToast("Error de conexión: ${e.message}"))
             }
         }
     }

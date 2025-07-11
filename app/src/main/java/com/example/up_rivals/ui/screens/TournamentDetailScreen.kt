@@ -2,6 +2,7 @@ package com.example.up_rivals.ui.screens
 
 import android.widget.Toast
 import androidx.annotation.DrawableRes
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -69,6 +70,7 @@ fun TournamentDetailScreen(
 
     LaunchedEffect(key1 = tournamentId) {
         viewModel.loadTournamentDetails(tournamentId)
+        viewModel.loadMatches(tournamentId)
     }
 
     LaunchedEffect(key1 = Unit) {
@@ -170,7 +172,12 @@ fun TournamentDetailScreen(
                         when (selectedTabIndex) {
                             0 -> ResultsTabContent(state = matchesState)
                             1 -> StandingsTabContent(navController = navController, state = standingsState)
-                            2 -> UpcomingMatchesTabContent(state = matchesState)
+                            // MODIFICADO: Le pasamos el ViewModel a la pestaña
+                            2 -> UpcomingMatchesTabContent(
+                                state = matchesState,
+                                userRole = userRole,
+                                onGenerateClick = { viewModel.generateSchedule(tournamentId) }
+                            )
                         }
                     }
                 }
@@ -257,28 +264,76 @@ fun StandingsTabContent(navController: NavController, state: StandingsUiState) {
 }
 
 @Composable
-fun UpcomingMatchesTabContent(state: MatchesUiState) {
+fun UpcomingMatchesTabContent(
+    state: MatchesUiState,
+    userRole: UserRole,
+    onGenerateClick: () -> Unit // Recibe la acción para el botón
+) {
     when (state) {
-        is MatchesUiState.Loading -> Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { CircularProgressIndicator() }
-        is MatchesUiState.Error -> Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text(state.message) }
+        is MatchesUiState.Loading -> {
+            Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { CircularProgressIndicator() }
+        }
+        is MatchesUiState.Error -> {
+            Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text(state.message) }
+        }
         is MatchesUiState.Success -> {
             val upcomingMatches = state.matches.filter { it.status.lowercase() == "pending" }
-            Column(Modifier.padding(16.dp)) {
-                Text("Próximos Partidos", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(16.dp))
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Si la lista está vacía...
                 if (upcomingMatches.isEmpty()) {
-                    Text("No hay partidos programados por el momento.")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // ...y el usuario es un organizador, mostramos el botón
+                    if (userRole == UserRole.ORGANIZER) {
+                        Text("Aún no se han generado los partidos para la siguiente jornada.", textAlign = TextAlign.Center)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        PrimaryButton(
+                            text = "Generar Partidos",
+
+                            onClick = {
+                                // --- AÑADE ESTA LÍNEA ---
+                                Log.d("DEBUG_PARTIDOS", "Botón 'Generar Partidos' CLICADO en la UI.")
+                                onGenerateClick() // Se llama a la función del ViewModel
+                            }
+                        )
+                    } else {
+                        // Si es visitante o jugador, solo mostramos un mensaje
+                        Text("Los partidos para la siguiente jornada aún no han sido publicados.")
+                    }
                 } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        upcomingMatches.forEach { match ->
-                            MatchResultRow(match = match)
-                            Divider()
+                    // Si la lista NO está vacía, la mostramos
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text("Próximos Partidos", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            upcomingMatches.forEach { match ->
+                                MatchResultRow(match = match)
+                                Divider()
+                            }
                         }
                     }
                 }
             }
         }
-        is MatchesUiState.Idle -> {}
+        is MatchesUiState.Idle -> {
+            // En el estado inicial, si es organizador, también le damos la opción de generar partidos
+            if (userRole == UserRole.ORGANIZER) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("Aún no se han generado los partidos para la siguiente jornada.", textAlign = TextAlign.Center)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    PrimaryButton(
+                        text = "Generar Partidos",
+                        onClick = onGenerateClick
+                    )
+                }
+            }
+        }
     }
 }
 

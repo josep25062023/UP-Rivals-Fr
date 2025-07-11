@@ -103,4 +103,10 @@ interface ApiService {
     suspend fun getPlayerTeams(
         @Header("Authorization") token: String
     ): Response<List<PlayerTeamDto>> // Esperamos una lista de nuestro nuevo DTO
+
+    @POST("tournaments/{id}/generate-schedule")
+    suspend fun generateSchedule(
+        @Header("Authorization") token: String,
+        @Path("id") tournamentId: String
+    ): Response<Unit>
 }

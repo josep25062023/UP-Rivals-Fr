@@ -3,26 +3,30 @@ package com.example.up_rivals.network.dto
 
 import com.google.gson.annotations.SerializedName
 
-// Representa un único partido
+// Versión final y correcta basada en tu Postman
 data class MatchDto(
     @SerializedName("id")
     val id: String,
 
-    @SerializedName("matchDate")
-    val matchDate: String, // La fecha y hora del partido en formato ISO (ej. "2025-08-10T14:00:00Z")
+    // CAMBIADO: El campo se llama 'date'
+    @SerializedName("date")
+    val matchDate: String,
 
     @SerializedName("status")
-    val status: String, // Podría ser "pending" o "finished"
+    val status: String,
 
+    // El servidor devuelve un objeto de equipo más complejo, podemos reutilizar nuestro DTO 'Team'
+    // ya que contiene los campos que necesitamos (id, name, logo)
     @SerializedName("teamA")
-    val teamA: Team, // Objeto anidado para el equipo A
+    val teamA: Team,
 
     @SerializedName("teamB")
-    val teamB: Team, // Objeto anidado para el equipo B
+    val teamB: Team,
 
-    @SerializedName("scoreA")
-    val scoreA: Int?, // Marcador del equipo A (puede ser nulo si no se ha jugado)
+    // CAMBIADO: Los campos de marcador tienen nombres diferentes
+    @SerializedName("teamAScore")
+    val scoreA: Int?,
 
-    @SerializedName("scoreB")
-    val scoreB: Int? // Marcador del equipo B (puede ser nulo si no se ha jugado)
+    @SerializedName("teamBScore")
+    val scoreB: Int?
 )

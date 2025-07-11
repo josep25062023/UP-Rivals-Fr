@@ -25,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.up_rivals.R
+import com.example.up_rivals.network.dto.TeamMemberDto
 import com.example.up_rivals.network.dto.User
 import com.example.up_rivals.ui.components.FormTextField
 import com.example.up_rivals.ui.components.StatCard
@@ -153,7 +154,7 @@ fun TeamDetailScreen(navController: NavController, teamId: String) {
 
 // --- Contenido de la Pestaña "Integrantes" CONECTADA ---
 @Composable
-fun MembersTabContent(members: List<User>, onAddMember: (String) -> Unit) {
+fun MembersTabContent(members: List<TeamMemberDto>, onAddMember: (String) -> Unit) {
     var showAddMemberDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(16.dp)) {
@@ -169,8 +170,9 @@ fun MembersTabContent(members: List<User>, onAddMember: (String) -> Unit) {
         }
         Spacer(Modifier.height(8.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            members.forEach { member ->
-                MemberRow(member = member)
+            // Iteramos sobre la lista de DTOs y le pasamos el objeto 'user' anidado
+            members.forEach { memberDto ->
+                MemberRow(member = memberDto.user)
                 Divider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f))
             }
         }
@@ -201,18 +203,13 @@ fun AddMemberDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                 labelText = "ID del Jugador"
             )
         },
-        confirmButton = {
-            Button(onClick = { onConfirm(memberId) }) { Text("Añadir") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
-        }
+        confirmButton = { Button(onClick = { onConfirm(memberId) }) { Text("Añadir") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }
-
 // Componente para cada fila de miembro
 @Composable
-private fun MemberRow(member: User) {
+private fun MemberRow(member: User) { // Ahora recibe un objeto User (el DTO)
     Column(
         modifier = Modifier
             .fillMaxWidth()
