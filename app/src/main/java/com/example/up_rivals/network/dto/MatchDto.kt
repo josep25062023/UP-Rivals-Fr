@@ -15,13 +15,12 @@ data class MatchDto(
     @SerializedName("status")
     val status: String,
 
-    // El servidor devuelve un objeto de equipo más complejo, podemos reutilizar nuestro DTO 'Team'
-    // ya que contiene los campos que necesitamos (id, name, logo)
+    // El servidor devuelve un objeto de equipo más complejo con captain
     @SerializedName("teamA")
-    val teamA: Team,
+    val teamA: MatchTeamDto,
 
     @SerializedName("teamB")
-    val teamB: Team,
+    val teamB: MatchTeamDto,
 
     // CAMBIADO: Los campos de marcador tienen nombres diferentes
     @SerializedName("teamAScore")
