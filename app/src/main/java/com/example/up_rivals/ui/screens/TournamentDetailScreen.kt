@@ -277,7 +277,7 @@ fun UpcomingMatchesTabContent(
             Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text(state.message) }
         }
         is MatchesUiState.Success -> {
-            val upcomingMatches = state.matches.filter { it.status.lowercase() == "pending" }
+            val upcomingMatches = state.matches.filter { it.status.lowercase() == "scheduled" }
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally

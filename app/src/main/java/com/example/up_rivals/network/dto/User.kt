@@ -14,6 +14,12 @@ data class User(
     val phone: String,
     @SerializedName("role")
     val role: String,
-    @SerializedName("profilePic")
-    val profilePic: String? // Puede ser nulo si no tiene foto
+    @SerializedName("profilePicture")
+    val profilePicture: String?, // Cambiado de profilePic a profilePicture
+    @SerializedName("institution")
+    val institution: String?,
+    @SerializedName("career")
+    val career: String?,
+    @SerializedName("isActive")
+    val isActive: Boolean
 )

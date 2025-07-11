@@ -101,7 +101,7 @@ fun ProfileScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(16.dp))
                     // --- 3. Mostramos la información real del usuario ---
                     AsyncImage(
-                        model = user.profilePic,
+                        model = user.profilePicture,
                         placeholder = painterResource(id = R.drawable.img_logo),
                         error = painterResource(id = R.drawable.img_logo),
                         contentDescription = "Foto de perfil",
