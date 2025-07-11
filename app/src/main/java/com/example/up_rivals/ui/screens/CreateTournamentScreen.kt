@@ -2,12 +2,15 @@
 package com.example.up_rivals.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +30,11 @@ import com.example.up_rivals.ui.components.PrimaryButton
 import com.example.up_rivals.ui.theme.UPRivalsTheme
 import com.example.up_rivals.viewmodels.CreateTournamentUiState
 import com.example.up_rivals.viewmodels.CreateTournamentViewModel
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,9 +45,13 @@ fun CreateTournamentScreen(navController: NavController) {
 
     var tournamentName by remember { mutableStateOf("") }
     var maxTeams by remember { mutableStateOf("") }
-    var startDate by remember { mutableStateOf("") }
-    var endDate by remember { mutableStateOf("") }
     var rules by remember { mutableStateOf("") }
+
+    var startDate by remember { mutableStateOf<LocalDate?>(null) }
+    var endDate by remember { mutableStateOf<LocalDate?>(null) }
+
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
 
     val categories = listOf("Fútbol", "Voleybol", "Básquetbol")
     var selectedCategory by remember { mutableStateOf("") }
@@ -48,6 +60,26 @@ fun CreateTournamentScreen(navController: NavController) {
     val modalities = listOf("Varonil", "Femenil", "Mixto")
     var selectedModality by remember { mutableStateOf("") }
     var isModalityMenuExpanded by remember { mutableStateOf(false) }
+
+    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.getDefault())
+
+    val startDateInteractionSource = remember { MutableInteractionSource() }
+    val endDateInteractionSource = remember { MutableInteractionSource() }
+
+    val isStartDatePressed by startDateInteractionSource.collectIsPressedAsState()
+    val isEndDatePressed by endDateInteractionSource.collectIsPressedAsState()
+
+    LaunchedEffect(isStartDatePressed) {
+        if (isStartDatePressed) {
+            showStartDatePicker = true
+        }
+    }
+
+    LaunchedEffect(isEndDatePressed) {
+        if (isEndDatePressed) {
+            showEndDatePicker = true
+        }
+    }
 
     LaunchedEffect(key1 = uiState) {
         when (val state = uiState) {
@@ -115,22 +147,84 @@ fun CreateTournamentScreen(navController: NavController) {
                     }
                 }
 
-                FormTextField(value = maxTeams, onValueChange = { maxTeams = it }, labelText = "Número de equipos", keyboardType = KeyboardType.Number)
+                FormTextField(
+                    value = maxTeams,
+                    onValueChange = { newValue ->
+                        maxTeams = newValue.filter { it.isDigit() }
+                    },
+                    labelText = "Número de equipos",
+                    keyboardType = KeyboardType.Number
+                )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        FormTextField(value = startDate, onValueChange = { startDate = it }, labelText = "Fecha de Inicio (YYYY-MM-DD)")
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        FormTextField(value = endDate, onValueChange = { endDate = it }, labelText = "Fecha de Termino (YYYY-MM-DD)")
-                    }
+                    OutlinedTextField(
+                        value = startDate?.format(dateFormatter) ?: "",
+                        onValueChange = { },
+                        label = { Text("Fecha de Inicio") },
+                        readOnly = true,
+                        trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Seleccionar fecha") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent
+                        ),
+                        interactionSource = startDateInteractionSource
+                    )
+                    OutlinedTextField(
+                        value = endDate?.format(dateFormatter) ?: "",
+                        onValueChange = { },
+                        label = { Text("Fecha de Término") },
+                        readOnly = true,
+                        trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Seleccionar fecha") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent
+                        ),
+                        interactionSource = endDateInteractionSource
+                    )
+                }
+
+                if (showStartDatePicker) {
+                    TournamentDatePickerDialog(
+                        onDateSelected = {
+                            startDate = it
+                            if (endDate?.isBefore(it) == true) {
+                                endDate = null
+                            }
+                            showStartDatePicker = false
+                        },
+                        onDismiss = { showStartDatePicker = false }
+                    )
+                }
+
+                if (showEndDatePicker) {
+                    // --- INICIO DE LA MODIFICACIÓN 1 ---
+                    // Se calcula la fecha mínima en milisegundos usando el estándar UTC para evitar errores de zona horaria.
+                    val minDateMillis = startDate
+                        ?.atStartOfDay(ZoneOffset.UTC)
+                        ?.toInstant()
+                        ?.toEpochMilli()
+
+                    TournamentDatePickerDialog(
+                        onDateSelected = {
+                            endDate = it
+                            showEndDatePicker = false
+                        },
+                        onDismiss = { showEndDatePicker = false },
+                        minDateMillis = minDateMillis
+                    )
                 }
 
                 TextField(
                     value = rules,
                     onValueChange = { rules = it },
                     label = { Text("Reglas")},
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(unfocusedIndicatorColor = Color.Transparent, focusedIndicatorColor = Color.Transparent)
                 )
@@ -143,15 +237,33 @@ fun CreateTournamentScreen(navController: NavController) {
                     enabled = uiState !is CreateTournamentUiState.Loading,
                     onClick = {
                         val maxTeamsInt = maxTeams.toIntOrNull()
-                        if (tournamentName.isBlank() || selectedCategory.isBlank() || selectedModality.isBlank() || startDate.isBlank() || endDate.isBlank() || rules.isBlank() || maxTeamsInt == null) {
-                            Toast.makeText(context, "Por favor, completa todos los campos.", Toast.LENGTH_SHORT).show()
-                            return@PrimaryButton
+
+                        when {
+                            tournamentName.isBlank() ||
+                                    selectedCategory.isBlank() ||
+                                    selectedModality.isBlank() ||
+                                    startDate == null ||
+                                    endDate == null ||
+                                    rules.isBlank() -> {
+                                Toast.makeText(context, "Por favor, completa todos los campos.", Toast.LENGTH_SHORT).show()
+                                return@PrimaryButton
+                            }
+                            maxTeamsInt == null -> {
+                                Toast.makeText(context, "Ingresa un número de equipos válido.", Toast.LENGTH_SHORT).show()
+                                return@PrimaryButton
+                            }
+                            maxTeamsInt < 2 -> {
+                                Toast.makeText(context, "El número mínimo de equipos debe ser 2.", Toast.LENGTH_SHORT).show()
+                                return@PrimaryButton
+                            }
+                            endDate!!.isBefore(startDate) -> {
+                                Toast.makeText(context, "La fecha de término no puede ser anterior a la de inicio.", Toast.LENGTH_SHORT).show()
+                                return@PrimaryButton
+                            }
                         }
 
-                        // NOTA: Añadimos una hora por defecto para cumplir con el formato del backend.
-                        // Lo ideal a futuro sería usar un selector de fecha Y hora.
-                        val formattedStartDate = "${startDate}T00:00:00Z"
-                        val formattedEndDate = "${endDate}T23:59:59Z"
+                        val formattedStartDate = "${startDate!!.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))}T00:00:00Z"
+                        val formattedEndDate = "${endDate!!.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))}T23:59:59Z"
 
                         val request = CreateTournamentRequest(
                             name = tournamentName,
@@ -171,6 +283,55 @@ fun CreateTournamentScreen(navController: NavController) {
             }
             Spacer(modifier = Modifier.height(8.dp))
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TournamentDatePickerDialog(
+    onDateSelected: (LocalDate) -> Unit,
+    onDismiss: () -> Unit,
+    minDateMillis: Long? = null
+) {
+    val selectableDates = remember(minDateMillis) {
+        object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                return minDateMillis?.let { utcTimeMillis >= it } ?: true
+            }
+        }
+    }
+
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis(),
+        selectableDates = selectableDates
+    )
+
+    DatePickerDialog(
+        onDismissRequest = { onDismiss() },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        // --- INICIO DE LA MODIFICACIÓN 2 ---
+                        // Se convierte la fecha seleccionada desde milisegundos usando UTC para asegurar la fecha correcta.
+                        val selectedDate = java.time.Instant.ofEpochMilli(millis)
+                            .atZone(ZoneOffset.UTC)
+                            .toLocalDate()
+                        onDateSelected(selectedDate)
+                    }
+                    onDismiss()
+                }
+            ) {
+                Text("Aceptar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onDismiss() }) {
+                Text("Cancelar")
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
     }
 }
 
