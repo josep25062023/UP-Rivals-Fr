@@ -9,6 +9,7 @@ import com.example.up_rivals.network.ApiClient
 import com.example.up_rivals.network.dto.MatchDto
 import com.example.up_rivals.network.dto.StandingDto
 import com.example.up_rivals.network.dto.Tournament
+import com.example.up_rivals.network.dto.UpdateMatchResultRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -161,6 +162,40 @@ class TournamentDetailViewModel(application: Application) : AndroidViewModel(app
                 }
             } catch (e: Exception) {
                 _eventFlow.emit(DetailScreenEvent.ShowToast("Error de conexión: ${e.message}"))
+            }
+        }
+    }
+
+    fun updateMatchResult(matchId: String, teamAScore: Int, teamBScore: Int) {
+        viewModelScope.launch {
+            try {
+                val token = userPreferencesRepository.authToken.first()
+                if (token.isNullOrBlank()) {
+                    _eventFlow.emit(DetailScreenEvent.ShowToast("Error de autenticación."))
+                    return@launch
+                }
+
+                val bearerToken = "Bearer $token"
+                val request = UpdateMatchResultRequest(
+                    teamAScore = teamAScore,
+                    teamBScore = teamBScore
+                )
+
+                val response = ApiClient.apiService.updateMatchResult(bearerToken, matchId, request)
+
+                if (response.isSuccessful) {
+                    _eventFlow.emit(DetailScreenEvent.ShowToast("Resultado actualizado exitosamente."))
+                    // Recargar los partidos para mostrar el resultado actualizado
+                    val currentState = _uiState.value
+                    if (currentState is TournamentDetailUiState.Success) {
+                        loadMatches(currentState.tournament.id)
+                    }
+                } else {
+                    _eventFlow.emit(DetailScreenEvent.ShowToast("Error al actualizar el resultado."))
+                }
+            } catch (e: Exception) {
+                Log.e("TournamentDetailViewModel", "Error updating match result", e)
+                _eventFlow.emit(DetailScreenEvent.ShowToast("Error al actualizar el resultado: ${e.message}"))
             }
         }
     }

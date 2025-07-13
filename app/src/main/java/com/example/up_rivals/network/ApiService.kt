@@ -109,4 +109,12 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("id") tournamentId: String
     ): Response<Unit>
+
+    // --- Rutas de Partidos ---
+    @PATCH("matches/{id}/result")
+    suspend fun updateMatchResult(
+        @Header("Authorization") token: String,
+        @Path("id") matchId: String,
+        @Body request: UpdateMatchResultRequest
+    ): Response<MatchDto>
 }
