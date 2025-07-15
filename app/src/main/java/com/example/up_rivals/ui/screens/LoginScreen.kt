@@ -9,7 +9,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,6 +29,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -53,6 +59,8 @@ fun LoginScreen(
     // Tus variables de estado para los campos de texto se quedan igual
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    // --- AÑADIDO: Estado para controlar la visibilidad de la contraseña ---
+    var passwordVisible by remember { mutableStateOf(false) }
 
     // --- AÑADIDO: Un LaunchedEffect para manejar los Toasts y la Navegación ---
     // Esto asegura que la navegación o el Toast solo se ejecuten una vez cuando el estado cambia
@@ -70,19 +78,22 @@ fun LoginScreen(
         }
     }
 
-    // Tu UI se queda casi igual, solo modificaremos el botón
+    // --- OPTIMIZADO: Mejor distribución del espacio vertical ---
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.weight(1f))
+        // --- REDUCIDO: Espaciado superior más pequeño ---
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // --- REDUCIDO: Logo más pequeño ---
         Box(
             modifier = Modifier
-                .size(180.dp)
+                .size(140.dp)
                 .shadow(elevation = 8.dp, shape = CircleShape)
                 .clip(CircleShape)
                 .background(brush = Brush.radialGradient(colors = listOf(SecondaryBlue, PrimaryBlue))),
@@ -91,30 +102,45 @@ fun LoginScreen(
             Image(
                 painter = painterResource(id = R.drawable.img_logo),
                 contentDescription = "Logo de UP-Rivals",
-                modifier = Modifier.size(160.dp)
+                modifier = Modifier.size(120.dp)
             )
         }
-        Spacer(modifier = Modifier.height(64.dp))
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         Text(
             text = "Iniciar sesión",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(24.dp))
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         FormTextField(
             value = username,
             onValueChange = { username = it },
-            labelText = "Email", // Cambiado de "Nombre de usuario" a "Email" para mayor claridad
+            labelText = "Email",
             keyboardType = KeyboardType.Email
         )
-        Spacer(modifier = Modifier.height(16.dp))
+
         FormTextField(
             value = password,
             onValueChange = { password = it },
             labelText = "Contraseña",
             keyboardType = KeyboardType.Password,
-            visualTransformation = PasswordVisualTransformation()
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(
+                    onClick = { passwordVisible = !passwordVisible }
+                ) {
+                    Icon(
+                        imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                    )
+                }
+            }
         )
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
@@ -123,7 +149,6 @@ fun LoginScreen(
                 Text("¿Olvidaste tu contraseña?")
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
 
         // --- MODIFICADO: El botón ahora muestra una ruedita de carga ---
         Box(
@@ -145,14 +170,18 @@ fun LoginScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Spacer(modifier = Modifier.weight(1f))
+        // --- OPTIMIZADO: Espaciado flexible pero controlado ---
+        Spacer(modifier = Modifier.weight(0.3f))
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("¿No tienes cuenta?")
             TextButton(onClick = { navController.navigate("register_screen") }) {
                 Text("Regístrate aquí")
             }
         }
+
+        // --- AÑADIDO: Espaciado inferior mínimo ---
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 

@@ -72,7 +72,7 @@ fun TournamentDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(key1 = tournamentId) {
-        viewModel.loadTournamentDetails(tournamentId)
+        viewModel.loadTournamentDetails(tournamentId, userRole)
         viewModel.loadMatches(tournamentId)
     }
 

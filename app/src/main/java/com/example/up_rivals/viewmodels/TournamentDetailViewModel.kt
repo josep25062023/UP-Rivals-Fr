@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.up_rivals.UserRole
 import com.example.up_rivals.data.UserPreferencesRepository
 import com.example.up_rivals.network.ApiClient
 import com.example.up_rivals.network.dto.MatchDto
@@ -61,18 +62,24 @@ class TournamentDetailViewModel(application: Application) : AndroidViewModel(app
     private val _eventFlow = MutableSharedFlow<DetailScreenEvent>()
     val eventFlow = _eventFlow.asSharedFlow()
 
-    fun loadTournamentDetails(tournamentId: String) {
+    fun loadTournamentDetails(tournamentId: String, userRole: UserRole = UserRole.VISITOR) {
         if (_uiState.value is TournamentDetailUiState.Success) return
         _uiState.value = TournamentDetailUiState.Loading
         viewModelScope.launch {
             try {
-                val token = userPreferencesRepository.authToken.first()
-                if (token.isNullOrBlank()) {
-                    _uiState.value = TournamentDetailUiState.Error("No autenticado.")
-                    return@launch
+                val response = if (userRole == UserRole.VISITOR) {
+                    // Usar endpoint público para visitantes
+                    ApiClient.apiService.getTournamentDetailsPublic(tournamentId)
+                } else {
+                    // Usar endpoint con autenticación para usuarios logueados
+                    val token = userPreferencesRepository.authToken.first()
+                    if (token.isNullOrBlank()) {
+                        _uiState.value = TournamentDetailUiState.Error("No autenticado.")
+                        return@launch
+                    }
+                    val bearerToken = "Bearer $token"
+                    ApiClient.apiService.getTournamentDetails(bearerToken, tournamentId)
                 }
-                val bearerToken = "Bearer $token"
-                val response = ApiClient.apiService.getTournamentDetails(bearerToken, tournamentId)
 
                 if (response.isSuccessful && response.body() != null) {
                     _uiState.value = TournamentDetailUiState.Success(response.body()!!)
@@ -84,7 +91,7 @@ class TournamentDetailViewModel(application: Application) : AndroidViewModel(app
             }
         }
     }
-
+    
     fun loadStandings(tournamentId: String) {
         if (_standingsUiState.value is StandingsUiState.Success) return
         _standingsUiState.value = StandingsUiState.Loading

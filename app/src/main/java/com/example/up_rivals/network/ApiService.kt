@@ -35,6 +35,12 @@ interface ApiService {
         @Path("id") tournamentId: String
     ): Response<Tournament>
 
+    // Nuevo endpoint público para visitantes
+    @GET("tournaments/{id}/public")
+    suspend fun getTournamentDetailsPublic(
+        @Path("id") tournamentId: String
+    ): Response<Tournament>
+
     @GET("tournaments/{id}/standings")
     suspend fun getTournamentStandings(
         @Path("id") tournamentId: String
@@ -117,4 +123,16 @@ interface ApiService {
         @Path("id") matchId: String,
         @Body request: UpdateMatchResultRequest
     ): Response<MatchDto>
+
+    // --- Rutas de Actividades ---
+    @GET("organizer/pending-matches")
+    suspend fun getPendingMatches(
+        @Header("Authorization") token: String
+    ): Response<List<PendingMatchDto>>
+
+    @GET("player/pending-matches")
+    suspend fun getPlayerPendingMatches(
+        @Header("Authorization") token: String
+    ): Response<List<PendingMatchDto>>
 }
+

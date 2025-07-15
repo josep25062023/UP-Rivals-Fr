@@ -87,18 +87,18 @@ fun ProfileScreen(navController: NavController) {
                 }
             }
             is ProfileUiState.Success -> {
-                // Obtenemos el usuario real del estado
                 val user = state.user
 
                 Column(
                     modifier = Modifier
                         .padding(innerPadding)
                         .padding(horizontal = 24.dp)
+                        .padding(top = 8.dp)
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp)) // Reducido de 16dp a 8dp
                     // --- 3. Mostramos la información real del usuario ---
                     AsyncImage(
                         model = user.profilePicture,
@@ -110,25 +110,15 @@ fun ProfileScreen(navController: NavController) {
                             .clip(CircleShape),
                         contentScale = ContentScale.Crop
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp)) // Reducido de 16dp a 12dp
                     Text(user.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text(user.email, style = MaterialTheme.typography.bodyMedium, color = SubtleGrey)
                     Text("ID: ${user.id}", style = MaterialTheme.typography.bodyMedium, color = SubtleGrey)
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp)) // Reducido de 24dp a 16dp
 
                     // --- El resto de la UI se queda igual ---
                     Button(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = LightBlueBackground), elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)) {
                         Text("Editar perfil", color = MaterialTheme.colorScheme.onSurface)
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                        Text("Datos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        StatCard(label = "Torneos", value = "120", modifier = Modifier.weight(1f))
-                        StatCard(label = "Resultados\nPendientes", value = "300", modifier = Modifier.weight(1f))
-                        StatCard(label = "Terminados", value = "150", modifier = Modifier.weight(1f))
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
