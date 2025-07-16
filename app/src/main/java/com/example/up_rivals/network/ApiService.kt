@@ -13,6 +13,13 @@ interface ApiService {
     @GET("auth/profile")
     suspend fun getProfile(@Header("Authorization") token: String): Response<User>
 
+    @PATCH("auth/{id}")
+    suspend fun updateProfile(
+        @Header("Authorization") token: String,
+        @Path("id") userId: String,
+        @Body request: UpdateProfileRequest
+    ): Response<User>
+
     @POST("auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<User>
 
@@ -135,4 +142,3 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<List<PendingMatchDto>>
 }
-

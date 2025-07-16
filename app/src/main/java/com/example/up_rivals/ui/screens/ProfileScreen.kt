@@ -81,11 +81,16 @@ fun ProfileScreen(navController: NavController) {
                     CircularProgressIndicator()
                 }
             }
+
             is ProfileUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(state.message)
                 }
             }
+
             is ProfileUiState.Success -> {
                 val user = state.user
 
@@ -111,23 +116,53 @@ fun ProfileScreen(navController: NavController) {
                         contentScale = ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.height(12.dp)) // Reducido de 16dp a 12dp
-                    Text(user.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text(user.email, style = MaterialTheme.typography.bodyMedium, color = SubtleGrey)
-                    Text("ID: ${user.id}", style = MaterialTheme.typography.bodyMedium, color = SubtleGrey)
+                    Text(
+                        user.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        user.email,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = SubtleGrey
+                    )
+                    Text(
+                        "ID: ${user.id}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = SubtleGrey
+                    )
                     Spacer(modifier = Modifier.height(16.dp)) // Reducido de 24dp a 16dp
 
                     // --- El resto de la UI se queda igual ---
-                    Button(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = LightBlueBackground), elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)) {
-                        Text("Editar perfil", color = MaterialTheme.colorScheme.onSurface)
+                    Button(
+                        onClick = { navController.navigate("edit_profile_screen") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = LightBlueBackground),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                    ) {
+                        // Se agrega el contenido del botón
+                        Text("Editar Perfil")
                     }
                     Spacer(modifier = Modifier.height(24.dp))
-                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                        Text("Configuración", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Text(
+                            "Configuración",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text("Notifications", modifier = Modifier.weight(1f))
-                        Switch(checked = notificationsEnabled, onCheckedChange = { notificationsEnabled = it })
+                        Switch(
+                            checked = notificationsEnabled,
+                            onCheckedChange = { notificationsEnabled = it })
                     }
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
                     Row(
@@ -136,14 +171,23 @@ fun ProfileScreen(navController: NavController) {
                             .clickable { showLogoutDialog = true },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Cerrar sesion", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.error)
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesión", tint = MaterialTheme.colorScheme.error)
+                        Text(
+                            "Cerrar sesion",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Icon(
+                            Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Cerrar sesión",
+                            tint = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }
         }
     }
 }
+
 
 
 @Preview(showBackground = true, showSystemUi = true)

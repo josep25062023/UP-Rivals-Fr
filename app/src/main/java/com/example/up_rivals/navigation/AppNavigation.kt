@@ -182,6 +182,7 @@ fun AppNavigation() {
                     composable("teams_screen") { TeamsScreen(navController = navController) }
                     composable("requests_screen") { RequestsScreen(navController = navController) }
                     composable("profile_screen") { ProfileScreen(navController = navController) }
+                    composable("edit_profile_screen") { EditProfileScreen(navController = navController) }
                     composable("register_screen") { RegisterScreen(navController = navController) }
                     composable("forgot_password_screen") { ForgotPasswordScreen(navController = navController) }
 
