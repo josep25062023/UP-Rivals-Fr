@@ -8,17 +8,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -42,6 +52,17 @@ fun TeamDetailScreen(navController: NavController, teamId: String) {
     val viewModel: TeamDetailViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    var showTeamLogoDialog by remember { mutableStateOf(false) }
+    var showViewTeamLogoDialog by remember { mutableStateOf(false) }
+
+    // Launcher para seleccionar imagen
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            viewModel.updateTeamLogo(it, context)
+        }
+    }
 
     // Efecto para cargar los detalles del equipo una sola vez
     LaunchedEffect(key1 = teamId) {
@@ -92,6 +113,8 @@ fun TeamDetailScreen(navController: NavController, teamId: String) {
             }
             is TeamDetailUiState.Success -> {
                 val teamDetail = state.teamDetail
+                val currentUserId = state.currentUserId
+                val isTeamCaptain = currentUserId == teamDetail.captain.id
                 var selectedTabIndex by remember { mutableStateOf(0) }
                 val tabs = listOf("Información", "Integrantes")
 
@@ -114,7 +137,16 @@ fun TeamDetailScreen(navController: NavController, teamId: String) {
                                 placeholder = painterResource(id = R.drawable.img_logo),
                                 error = painterResource(id = R.drawable.img_logo),
                                 contentDescription = "Logo del Equipo",
-                                modifier = Modifier.size(90.dp).clip(CircleShape),
+                                modifier = Modifier
+                                    .size(90.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        if (isTeamCaptain) {
+                                            showTeamLogoDialog = true
+                                        } else {
+                                            showViewTeamLogoDialog = true
+                                        }
+                                    },
                                 contentScale = ContentScale.Crop
                             )
                             Spacer(Modifier.height(8.dp))
@@ -146,6 +178,90 @@ fun TeamDetailScreen(navController: NavController, teamId: String) {
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+
+    // Diálogo para opciones de foto de equipo (solo para capitanes)
+    if (showTeamLogoDialog) {
+        val currentState = uiState
+        val isTeamCaptain = if (currentState is TeamDetailUiState.Success) {
+            currentState.currentUserId == currentState.teamDetail.captain.id
+        } else false
+
+        if (isTeamCaptain) {
+            AlertDialog(
+                onDismissRequest = { showTeamLogoDialog = false },
+                title = { Text("Logo del Equipo") },
+                text = { Text("¿Qué deseas hacer con el logo del equipo?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showTeamLogoDialog = false
+                            imagePickerLauncher.launch("image/*")
+                        }
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Actualizar Logo")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showTeamLogoDialog = false
+                            showViewTeamLogoDialog = true
+                        }
+                    ) {
+                        Icon(Icons.Default.Visibility, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Ver Logo")
+                    }
+                }
+            )
+        }
+    }
+
+    // Diálogo para ver el logo en pantalla completa
+    if (showViewTeamLogoDialog) {
+        Dialog(
+            onDismissRequest = { showViewTeamLogoDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { showViewTeamLogoDialog = false },
+                contentAlignment = Alignment.Center
+            ) {
+                val currentState = uiState
+                if (currentState is TeamDetailUiState.Success) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(currentState.teamDetail.logo)
+                            .crossfade(true)
+                            .build(),
+                        placeholder = painterResource(id = R.drawable.img_logo),
+                        error = painterResource(id = R.drawable.img_logo),
+                        contentDescription = "Logo del Equipo",
+                        modifier = Modifier.size(300.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                IconButton(
+                    onClick = { showViewTeamLogoDialog = false },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Cerrar",
+                        tint = Color.White
+                    )
                 }
             }
         }

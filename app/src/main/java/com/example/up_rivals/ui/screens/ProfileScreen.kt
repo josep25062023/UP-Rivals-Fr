@@ -11,7 +11,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +49,8 @@ fun ProfileScreen(navController: NavController) {
 
     var notificationsEnabled by remember { mutableStateOf(true) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showProfilePictureDialog by remember { mutableStateOf(false) }
+    var showViewProfilePictureDialog by remember { mutableStateOf(false) }
 
     // Launcher para seleccionar imagen de la galería
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -73,6 +80,89 @@ fun ProfileScreen(navController: NavController) {
             },
             dismissButton = { TextButton(onClick = { showLogoutDialog = false }) { Text("No") } }
         )
+    }
+
+    if (showProfilePictureDialog) {
+        AlertDialog(
+            onDismissRequest = { showProfilePictureDialog = false },
+            title = { Text("Foto de Perfil") },
+            text = { Text("¿Qué deseas hacer?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showProfilePictureDialog = false
+                        imagePickerLauncher.launch("image/*")
+                    }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Actualizar foto")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showProfilePictureDialog = false
+                        showViewProfilePictureDialog = true
+                    }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Ver foto")
+                    }
+                }
+            }
+        )
+    }
+
+    if (showViewProfilePictureDialog) {
+        Dialog(
+            onDismissRequest = { showViewProfilePictureDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { showViewProfilePictureDialog = false }
+            ) {
+                when (val state = uiState) {
+                    is ProfileUiState.Success -> {
+                        AsyncImage(
+                            model = state.user.profilePicture,
+                            placeholder = painterResource(id = R.drawable.img_logo),
+                            error = painterResource(id = R.drawable.img_logo),
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                    else -> {
+                        Image(
+                            painter = painterResource(id = R.drawable.img_logo),
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = { showViewProfilePictureDialog = false },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Cerrar",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -127,7 +217,7 @@ fun ProfileScreen(navController: NavController) {
                             .size(100.dp)
                             .clip(CircleShape)
                             .clickable {
-                                imagePickerLauncher.launch("image/*")
+                                showProfilePictureDialog = true
                             },
                         contentScale = ContentScale.Crop
                     )
@@ -153,11 +243,9 @@ fun ProfileScreen(navController: NavController) {
                     Button(
                         onClick = { navController.navigate("edit_profile_screen") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = LightBlueBackground),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        // Se agrega el contenido del botón
-                        Text("Editar Perfil")
+                        Text("Editar Perfil", color = MaterialTheme.colorScheme.onPrimary)
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                     Column(

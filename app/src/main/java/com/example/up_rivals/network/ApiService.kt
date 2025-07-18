@@ -99,6 +99,14 @@ interface ApiService {
         @Body request: CreateTeamRequest
     ): Response<Team>
 
+    @PATCH("teams/{id}")
+    suspend fun updateTeam(
+        @Header("Authorization") token: String,
+        @Path("id") teamId: String,
+        @Body request: UpdateTeamRequest
+    ): Response<TeamDetailDto>
+
+
     @POST("tournaments/{tournamentId}/inscribe/{teamId}")
     suspend fun inscribeTeam(
         @Header("Authorization") token: String,

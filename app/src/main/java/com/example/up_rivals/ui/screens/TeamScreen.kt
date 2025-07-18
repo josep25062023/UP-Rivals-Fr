@@ -38,15 +38,28 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.up_rivals.R
+import com.example.up_rivals.network.dto.PlayerTeamDto
 import com.example.up_rivals.ui.theme.UPRivalsTheme
 import com.example.up_rivals.viewmodels.MyTeamsUiState
 import com.example.up_rivals.viewmodels.MyTeamsViewModel
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamsScreen(navController: NavController) {
     val viewModel: MyTeamsViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
+
+    // ✅ NUEVO: Estado para SwipeRefresh
+    val swipeRefreshState = rememberSwipeRefreshState(
+        isRefreshing = uiState is MyTeamsUiState.Loading
+    )
+
+    // ✅ NUEVO: Recargar cuando se regresa a esta pantalla
+    LaunchedEffect(Unit) {
+        viewModel.refreshTeams()
+    }
 
     Scaffold(
         topBar = {
@@ -55,69 +68,34 @@ fun TeamsScreen(navController: NavController) {
             )
         }
     ) { innerPadding ->
-        when (val state = uiState) {
-            is MyTeamsUiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            is MyTeamsUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                    Text(state.message)
-                }
-            }
-            is MyTeamsUiState.Success -> {
-                LazyColumn(
-                    modifier = Modifier.padding(innerPadding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        Text(
-                            text = "Mis Equipos",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+        // ✅ NUEVO: Envolver contenido con SwipeRefresh
+        SwipeRefresh(
+            state = swipeRefreshState,
+            onRefresh = { viewModel.refreshTeams() },
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            when (val state = uiState) {
+                is MyTeamsUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
-                    if (state.teams.isEmpty()) {
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Text(
-                                            "No tienes equipos",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            "Crea o únete a un equipo para comenzar",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    } else {
+                }
+                is MyTeamsUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(state.message)
+                    }
+                }
+                is MyTeamsUiState.Success -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         items(state.teams) { team ->
                             TeamInfoCard(
-                                teamName = team.teamName,
-                                tournamentName = team.tournament.tournamentName,
-                                teamLogoUrl = team.teamLogo,
-                                onClick = { navController.navigate("team_detail_screen/${team.teamId}") }
+                                team = team,
+                                onClick = {
+                                    navController.navigate("team_detail_screen/${team.teamId}")
+                                }
                             )
                         }
                     }
@@ -128,12 +106,11 @@ fun TeamsScreen(navController: NavController) {
 }
 
 // Componente de tarjeta mejorado siguiendo el estilo de TournamentCard
+// ✅ Corregir parámetros para usar PlayerTeamDto
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamInfoCard(
-    teamName: String,
-    tournamentName: String,
-    teamLogoUrl: String?,
+    team: PlayerTeamDto, // ✅ Usar el DTO correcto
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -196,12 +173,12 @@ fun TeamInfoCard(
 
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(teamLogoUrl)
+                        .data(team.teamLogo) // ✅ Usar team.logo
                         .crossfade(true)
                         .build(),
                     placeholder = painterResource(id = R.drawable.img_logo),
                     error = painterResource(id = R.drawable.img_logo),
-                    contentDescription = "Logo de $teamName",
+                    contentDescription = "Logo de ${team.teamName}", // ✅ Usar team.name
                     modifier = Modifier
                         .size(64.dp)
                         .clip(CircleShape)
@@ -230,7 +207,7 @@ fun TeamInfoCard(
                     enter = slideInVertically(initialOffsetY = { -it }) + fadeIn()
                 ) {
                     Text(
-                        text = teamName,
+                        text = team.teamName, // ✅ Usar team.name
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 2,
@@ -244,7 +221,7 @@ fun TeamInfoCard(
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
-                        text = tournamentName,
+                        text = team.tournament.tournamentName, // ✅ Usar team.tournamentName
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

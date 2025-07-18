@@ -31,11 +31,16 @@ class MyTeamsViewModel(application: Application) : AndroidViewModel(application)
         loadPlayerTeams()
     }
 
-    private fun loadPlayerTeams() {
+    // ✅ NUEVA FUNCIÓN: Para refrescar manualmente
+    fun refreshTeams() {
+        loadPlayerTeams()
+    }
+
+    // ✅ HACER PÚBLICA: Para poder llamarla desde otras pantallas
+    fun loadPlayerTeams() {
         _uiState.value = MyTeamsUiState.Loading
         viewModelScope.launch {
             try {
-                // 1. Obtenemos el token del jugador
                 val token = userPreferencesRepository.authToken.first()
                 if (token.isNullOrBlank()) {
                     _uiState.value = MyTeamsUiState.Error("No se encontró token de autenticación.")
@@ -43,7 +48,6 @@ class MyTeamsViewModel(application: Application) : AndroidViewModel(application)
                 }
                 val bearerToken = "Bearer $token"
 
-                // 2. Llamamos a la nueva API
                 val response = ApiClient.apiService.getPlayerTeams(bearerToken)
 
                 if (response.isSuccessful && response.body() != null) {
