@@ -28,9 +28,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -48,6 +50,9 @@ import com.example.up_rivals.viewmodels.TournamentsViewModel
 // Importaciones para SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import coil.compose.AsyncImage
+import com.example.up_rivals.viewmodels.ProfileViewModel
+import com.example.up_rivals.viewmodels.ProfileUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,15 +62,22 @@ fun TournamentsScreen(
 ) {
     // 1. Obtenemos el ViewModel y todos los estados que necesitamos
     val viewModel: TournamentsViewModel = viewModel()
+    val profileViewModel: ProfileViewModel = viewModel()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val inProgressTournaments by viewModel.inProgressTournaments.collectAsState()
     val upcomingTournaments by viewModel.upcomingTournaments.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val profileUiState by profileViewModel.uiState.collectAsState()
 
     // 2. Estado para SwipeRefresh
     val swipeRefreshState = rememberSwipeRefreshState(
         isRefreshing = uiState is TournamentsUiState.Loading
     )
+
+    // 3. Refrescar el perfil cuando la pantalla se vuelve visible
+    LaunchedEffect(Unit) {
+        profileViewModel.loadProfile()
+    }
 
     Scaffold(
         topBar = {
@@ -79,7 +91,10 @@ fun TournamentsScreen(
                 actions = {
                     // Botón de refresh manual
                     IconButton(
-                        onClick = { viewModel.loadTournaments() }
+                        onClick = {
+                            viewModel.loadTournaments()
+                            profileViewModel.loadProfile() // También refrescar el perfil
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
@@ -89,13 +104,33 @@ fun TournamentsScreen(
                     }
 
                     IconButton(onClick = { navController.navigate("profile_screen") }) {
-                        Image(
-                            painter = painterResource(id = R.drawable.img_logo),
-                            contentDescription = "Perfil",
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                        )
+                        when (val state = profileUiState) {
+                            is ProfileUiState.Success -> {
+                                // Debug: Verificar el valor de profilePicture
+                                android.util.Log.d("TournamentsScreen", "Profile picture URL: '${state.user.profilePicture}'")
+
+                                AsyncImage(
+                                    model = state.user.profilePicture?.takeIf { it.isNotBlank() },
+                                    contentDescription = "Foto de perfil",
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape),
+                                    placeholder = painterResource(id = R.drawable.img_logo),
+                                    error = painterResource(id = R.drawable.img_logo),
+                                    fallback = painterResource(id = R.drawable.img_logo),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            else -> {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_logo),
+                                    contentDescription = "Perfil",
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                )
+                            }
+                        }
                     }
                 }
             )

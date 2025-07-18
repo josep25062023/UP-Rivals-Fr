@@ -21,10 +21,13 @@ import androidx.navigation.compose.rememberNavController
 import com.example.up_rivals.R
 import com.example.up_rivals.UserRole
 import com.example.up_rivals.network.ApiClient
-import com.example.up_rivals.ui.components.ActivityCard
+import com.example.up_rivals.ui.components.MatchCard
+import com.example.up_rivals.ui.components.MatchStatus
 import com.example.up_rivals.ui.theme.UPRivalsTheme
 import com.example.up_rivals.viewmodels.ActivitiesViewModel
 import com.example.up_rivals.utils.TokenManager
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -39,12 +42,14 @@ fun ActivitiesScreen(navController: NavController) {
 
     var userRole by remember { mutableStateOf<UserRole?>(null) }
 
+    // Estado para SwipeRefresh
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isLoading)
+
     // Obtener el rol del usuario y cargar partidos pendientes
     LaunchedEffect(Unit) {
         val token = TokenManager.getToken(context)
         if (token != null) {
             try {
-                // Obtener el perfil del usuario para determinar su rol
                 val profileResponse = ApiClient.apiService.getProfile("Bearer $token")
                 if (profileResponse.isSuccessful) {
                     val user = profileResponse.body()
@@ -55,13 +60,11 @@ fun ActivitiesScreen(navController: NavController) {
                     }
                     userRole = role
 
-                    // Cargar partidos pendientes con el rol correcto
                     if (role != UserRole.VISITOR) {
                         viewModel.loadPendingMatches(token, role)
                     }
                 }
             } catch (e: Exception) {
-                // En caso de error, usar rol por defecto
                 userRole = UserRole.VISITOR
             }
         }
@@ -87,22 +90,21 @@ fun ActivitiesScreen(navController: NavController) {
             )
         }
     ) { innerPadding ->
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+        SwipeRefresh(
+            state = swipeRefreshState,
+            onRefresh = {
+                val token = TokenManager.getToken(context)
+                if (token != null && userRole != null && userRole != UserRole.VISITOR) {
+                    viewModel.loadPendingMatches(token, userRole!!)
+                }
             }
-        } else {
+        ) {
             LazyColumn(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .fillMaxSize(), // Eliminar padding superior completamente
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp), // Reducir padding vertical a 4dp
-                verticalArrangement = Arrangement.spacedBy(8.dp) // Reducir espaciado entre elementos a 8dp
+                    .fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
                     val titleText = when (userRole) {
@@ -114,11 +116,11 @@ fun ActivitiesScreen(navController: NavController) {
                         titleText,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
                 }
 
-                if (pendingMatches.isEmpty()) {
+                if (pendingMatches.isEmpty() && !isLoading) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -129,26 +131,36 @@ fun ActivitiesScreen(navController: NavController) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(24.dp),
+                                    .padding(32.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val emptyMessage = when (userRole) {
-                                    UserRole.ORGANIZER -> "No hay partidos pendientes de calificar"
-                                    UserRole.PLAYER -> "No tienes partidos pendientes"
-                                    else -> "No hay actividades disponibles"
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    val emptyMessage = when (userRole) {
+                                        UserRole.ORGANIZER -> "No hay partidos pendientes de calificar"
+                                        UserRole.PLAYER -> "No tienes partidos pendientes"
+                                        else -> "No hay actividades disponibles"
+                                    }
+                                    Text(
+                                        emptyMessage,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        "Desliza hacia abajo para actualizar",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
-                                Text(
-                                    emptyMessage,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
                             }
                         }
                     }
                 } else {
                     items(pendingMatches) { match ->
                         val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-                        val displayFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                        val displayFormat = SimpleDateFormat("HH:mm - dd/MM/yyyy", Locale.getDefault())
                         val formattedTime = try {
                             val date = dateFormat.parse(match.date)
                             displayFormat.format(date ?: Date())
@@ -156,13 +168,18 @@ fun ActivitiesScreen(navController: NavController) {
                             match.date
                         }
 
-                        ActivityCard(
-                            sportName = match.tournament.name,
-                            teams = "${match.teamA.name} vs ${match.teamB.name}",
-                            time = formattedTime,
-                            imageResId = R.drawable.img_futbol, // Usar imagen por defecto
+                        // Usar una imagen por defecto ya que no tenemos acceso a la categoría
+                        val imageRes = R.drawable.img_logo
+
+                        MatchCard(
+                            tournamentName = match.tournament.name,
+                            teamA = match.teamA.name,
+                            teamB = match.teamB.name,
+                            matchTime = formattedTime,
+                            sport = "Deporte", // Texto genérico ya que no tenemos acceso a la categoría
+                            imageResId = imageRes,
+                            status = MatchStatus.PENDING,
                             onClick = {
-                                // Navegar a los detalles del torneo para asignar resultado
                                 navController.navigate("tournament_detail/${match.tournament.id}")
                             }
                         )
@@ -172,7 +189,6 @@ fun ActivitiesScreen(navController: NavController) {
         }
     }
 }
-
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

@@ -82,4 +82,9 @@ class MyTournamentsViewModel(application: Application) : AndroidViewModel(applic
             }
         }
     }
+
+    // Función pública para refrescar los torneos
+    fun refreshTournaments() {
+        loadMyTournaments()
+    }
 }

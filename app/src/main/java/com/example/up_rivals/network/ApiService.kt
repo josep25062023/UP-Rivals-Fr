@@ -3,6 +3,7 @@ package com.example.up_rivals.network
 import com.example.up_rivals.network.dto.*
 import retrofit2.Response
 import retrofit2.http.*
+import okhttp3.MultipartBody
 
 interface ApiService {
 
@@ -141,4 +142,11 @@ interface ApiService {
     suspend fun getPlayerPendingMatches(
         @Header("Authorization") token: String
     ): Response<List<PendingMatchDto>>
+
+    // --- Rutas de Archivos ---
+    @Multipart
+    @POST("files/upload")
+    suspend fun uploadFile(
+        @Part file: okhttp3.MultipartBody.Part
+    ): Response<UploadResponse>
 }

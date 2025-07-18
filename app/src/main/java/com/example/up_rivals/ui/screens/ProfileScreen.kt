@@ -1,5 +1,7 @@
 package com.example.up_rivals.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -37,9 +40,19 @@ fun ProfileScreen(navController: NavController) {
     // --- 1. Obtenemos el ViewModel y su estado ---
     val viewModel: ProfileViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     var notificationsEnabled by remember { mutableStateOf(true) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // Launcher para seleccionar imagen de la galería
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            viewModel.updateProfilePicture(it, context)
+        }
+    }
 
     if (showLogoutDialog) {
         AlertDialog(
@@ -112,7 +125,10 @@ fun ProfileScreen(navController: NavController) {
                         contentDescription = "Foto de perfil",
                         modifier = Modifier
                             .size(100.dp)
-                            .clip(CircleShape),
+                            .clip(CircleShape)
+                            .clickable {
+                                imagePickerLauncher.launch("image/*")
+                            },
                         contentScale = ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.height(12.dp)) // Reducido de 16dp a 12dp

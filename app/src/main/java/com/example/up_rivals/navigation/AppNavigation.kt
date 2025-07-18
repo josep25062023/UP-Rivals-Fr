@@ -219,6 +219,17 @@ fun AppNavigation() {
                         )
                     }
 
+                                        // Ruta simplificada para navegación desde actividades
+                    composable("tournament_detail/{tournamentId}") { backStackEntry ->
+                        val tournamentId = backStackEntry.arguments?.getString("tournamentId") ?: ""
+                        TournamentDetailScreen(
+                            navController = navController,
+                            userRole = currentUserRole,
+                            tournamentId = tournamentId,
+                            isRegistered = false // Por defecto false desde actividades
+                        )
+                    }
+
                     // Ruta de detalle de partido
                     composable("match_detail_screen/{matchId}") { backStackEntry ->
                         val matchId = backStackEntry.arguments?.getString("matchId") ?: ""

@@ -5,16 +5,22 @@ import androidx.annotation.DrawableRes
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.SportsScore
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -230,40 +236,131 @@ fun ResultsTabContent(
 ) {
     when (state) {
         is MatchesUiState.Loading -> {
-            Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { CircularProgressIndicator() }
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.dp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Cargando resultados...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
         is MatchesUiState.Error -> {
-            Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text(state.message) }
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.Error,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = state.message,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
         is MatchesUiState.Success -> {
             val finishedMatches = state.matches.filter { it.status.lowercase() == "finished" }
 
             if (finishedMatches.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) {
-                    Text("Aún no hay resultados disponibles.")
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.SportsScore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Aún no hay resultados disponibles",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Los resultados aparecerán aquí una vez que se completen los partidos",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             } else {
-                Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    Text("Resultados", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        finishedMatches.forEach { match ->
-                            FinishedMatchRow(
-                                match = match,
-                                userRole = userRole,
-                                onUpdateResult = onUpdateResult
-                            )
-                            if (match != finishedMatches.last()) {
-                                Divider(color = SubtleGrey, thickness = 0.5.dp)
-                            }
-                        }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SportsScore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Resultados",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    finishedMatches.forEach { match ->
+                        FinishedMatchRow(
+                            match = match,
+                            userRole = userRole,
+                            onUpdateResult = onUpdateResult
+                        )
                     }
                 }
             }
         }
         is MatchesUiState.Idle -> {
-            Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) {
-                Text("Cargando resultados...")
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.dp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Cargando resultados...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -513,40 +610,216 @@ fun FinishedMatchRow(
     var teamAScore by remember { mutableStateOf(match.scoreA?.toString() ?: "") }
     var teamBScore by remember { mutableStateOf(match.scoreB?.toString() ?: "") }
 
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+    // Determinar el ganador
+    val teamAWins = (match.scoreA ?: 0) > (match.scoreB ?: 0)
+    val teamBWins = (match.scoreB ?: 0) > (match.scoreA ?: 0)
+    val isDraw = match.scoreA == match.scoreB
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = LightBlueBackground
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.weight(1f)) {
-                AsyncImage(model = match.teamA.logo, placeholder = painterResource(id = R.drawable.img_logo), error = painterResource(id = R.drawable.img_logo), contentDescription = "Logo de ${match.teamA.name}", modifier = Modifier.size(32.dp).clip(CircleShape))
-                Text(match.teamA.name, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            }
+            // Fecha del partido
+            Text(
+                text = formatMatchDate(match.matchDate),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(text = "${match.scoreA ?: '?'} - ${match.scoreB ?: '?'}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
 
-                // Icono de editar solo para organizadores
-                if (userRole == UserRole.ORGANIZER) {
-                    IconButton(
-                        onClick = { showEditDialog = true },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Editar resultado",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Equipo A
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box {
+                        AsyncImage(
+                            model = match.teamA.logo,
+                            placeholder = painterResource(id = R.drawable.img_logo),
+                            error = painterResource(id = R.drawable.img_logo),
+                            contentDescription = "Logo de ${match.teamA.name}",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .border(
+                                    width = if (teamAWins) 2.dp else 0.dp,
+                                    color = if (teamAWins) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    shape = CircleShape
+                                ),
+                            contentScale = ContentScale.Crop
                         )
+                        // Corona para el ganador
+                        if (teamAWins && !isDraw) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Ganador",
+                                tint = Color(0xFFFFD700),
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 4.dp, y = (-4).dp)
+                            )
+                        }
+                    }
+
+                    Column {
+                        Text(
+                            text = match.teamA.name,
+                            fontWeight = if (teamAWins) FontWeight.Bold else FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = if (teamAWins) Color(0xFF007BFF) else MaterialTheme.colorScheme.onSurface
+                        )
+                        if (teamAWins && !isDraw) {
+                            Text(
+                                text = "Ganador",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF007BFF),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
-            }
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.weight(1f)) {
-                Spacer(modifier = Modifier.weight(1f))
-                Text(match.teamB.name, fontWeight = FontWeight.SemiBold, maxLines = 1, textAlign = TextAlign.End)
-                AsyncImage(model = match.teamB.logo, placeholder = painterResource(id = R.drawable.img_logo), error = painterResource(id = R.drawable.img_logo), contentDescription = "Logo de ${match.teamB.name}", modifier = Modifier.size(32.dp).clip(CircleShape))
+                // Marcador central
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = when {
+                                isDraw -> Color(0xFFE0E0E0)
+                                else -> Color(0xFF007BFF)
+                            }
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "${match.scoreA ?: '?'}",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDraw) Color.Black else Color.White
+                            )
+                            Text(
+                                text = "-",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (isDraw) Color.Black else Color.White
+                            )
+                            Text(
+                                text = "${match.scoreB ?: '?'}",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDraw) Color.Black else Color.White
+                            )
+                        }
+                    }
+
+                    if (isDraw) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Empate",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    // Botón de editar para organizadores
+                    if (userRole == UserRole.ORGANIZER) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        IconButton(
+                            onClick = { showEditDialog = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Editar resultado",
+                                tint = Color(0xFF007BFF),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Equipo B
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = match.teamB.name,
+                            fontWeight = if (teamBWins) FontWeight.Bold else FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.End,
+                            color = if (teamBWins) Color(0xFF007BFF) else MaterialTheme.colorScheme.onSurface
+                        )
+                        if (teamBWins && !isDraw) {
+                            Text(
+                                text = "Ganador",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF007BFF),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Box {
+                        AsyncImage(
+                            model = match.teamB.logo,
+                            placeholder = painterResource(id = R.drawable.img_logo),
+                            error = painterResource(id = R.drawable.img_logo),
+                            contentDescription = "Logo de ${match.teamB.name}",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .border(
+                                    width = if (teamBWins) 2.dp else 0.dp,
+                                    color = if (teamBWins) Color(0xFF007BFF) else Color.Transparent,
+                                    shape = CircleShape
+                                ),
+                            contentScale = ContentScale.Crop
+                        )
+                        // Corona para el ganador
+                        if (teamBWins && !isDraw) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Ganador",
+                                tint = Color(0xFFFFD700),
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 4.dp, y = (-4).dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

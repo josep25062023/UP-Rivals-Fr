@@ -95,4 +95,9 @@ class PlayerTournamentsViewModel(application: Application) : AndroidViewModel(ap
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
     }
+
+    // Función pública para refrescar los datos
+    fun loadTournaments() {
+        loadAllData()
+    }
 }

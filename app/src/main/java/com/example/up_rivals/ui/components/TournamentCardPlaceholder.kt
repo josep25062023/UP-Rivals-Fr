@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun TournamentCardPlaceholder() {
+fun TournamentCardPlaceholder(modifier: Modifier = Modifier) {
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {

@@ -15,6 +15,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+// Eliminar: import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,9 +41,14 @@ import androidx.navigation.compose.rememberNavController
 import com.example.up_rivals.R
 import com.example.up_rivals.ui.components.FormTextField
 import com.example.up_rivals.ui.components.TournamentCard
+import com.example.up_rivals.ui.components.TournamentCardPlaceholder
 import com.example.up_rivals.ui.theme.UPRivalsTheme
 import com.example.up_rivals.viewmodels.MyTournamentsViewModel
 import com.example.up_rivals.viewmodels.TournamentsUiState
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import com.valentinilk.shimmer.shimmer
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +62,8 @@ fun MyTournamentsScreen(
     val inProgressTournaments by viewModel.inProgressTournaments.collectAsState()
     val upcomingTournaments by viewModel.upcomingTournaments.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val swipeRefreshState =
+        rememberSwipeRefreshState(isRefreshing = uiState is TournamentsUiState.Loading)
 
     Scaffold(
         topBar = {
@@ -66,6 +75,7 @@ fun MyTournamentsScreen(
                     }
                 },
                 actions = {
+                    // Eliminar el IconButton de refresh
                     IconButton(onClick = { navController.navigate("profile_screen") }) {
                         Image(
                             painter = painterResource(id = R.drawable.img_logo),
@@ -79,92 +89,150 @@ fun MyTournamentsScreen(
             )
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding)) {
-            FormTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.onSearchQueryChange(it) },
-                labelText = "Buscar mis torneos...",
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            )
+        SwipeRefresh(
+            state = swipeRefreshState,
+            onRefresh = { viewModel.refreshTournaments() }
+        ) {
+            Column(modifier = Modifier.padding(innerPadding)) {
+                FormTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChange(it) },
+                    labelText = "Buscar mis torneos...",
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
 
-            when (uiState) {
-                is TournamentsUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-                is TournamentsUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text((uiState as TournamentsUiState.Error).message)
-                    }
-                }
-                is TournamentsUiState.Success -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        if (inProgressTournaments.isEmpty() && upcomingTournaments.isEmpty()) {
-                            item {
-                                Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text("Aún no has creado ningún torneo.")
-                                }
-                            }
-                        }
-
-                        if (inProgressTournaments.isNotEmpty()) {
-                            item {
-                                Text(
-                                    text = "En curso",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 8.dp)
-                                )
-                            }
-                            items(inProgressTournaments) { tournament ->
-                                val imageRes = when (tournament.category.lowercase()) {
-                                    "fútbol" -> R.drawable.img_futbol
-                                    "básquetbol" -> R.drawable.img_basquetbol
-                                    "voleybol" -> R.drawable.img_voleybol
-                                    else -> R.drawable.img_logo
-                                }
-                                TournamentCard(
-                                    startDate = tournament.startDate,
-                                    endDate = tournament.endDate,
-                                    tournamentName = tournament.name,
-                                    sport = tournament.category,
-                                    imageResId = imageRes,
-                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}/false") }
+                when (uiState) {
+                    is TournamentsUiState.Loading -> {
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(6) {
+                                TournamentCardPlaceholder(
+                                    modifier = Modifier.shimmer()
                                 )
                             }
                         }
+                    }
 
-                        if (upcomingTournaments.isNotEmpty()) {
-                            item {
+                    is TournamentsUiState.Error -> {
+                        val errorState = uiState as TournamentsUiState.Error
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
                                 Text(
-                                    text = "Próximos",
+                                    text = "Error al cargar torneos",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 16.dp)
+                                    color = MaterialTheme.colorScheme.error
                                 )
-                            }
-                            items(upcomingTournaments) { tournament ->
-                                val imageRes = when (tournament.category.lowercase()) {
-                                    "fútbol" -> R.drawable.img_futbol
-                                    "básquetbol" -> R.drawable.img_basquetbol
-                                    "voleybol" -> R.drawable.img_voleybol
-                                    else -> R.drawable.img_logo
+                                Text(
+                                    text = errorState.message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Button(
+                                    onClick = { viewModel.refreshTournaments() }
+                                ) {
+                                    Text("Reintentar")
                                 }
-                                TournamentCard(
-                                    startDate = tournament.startDate,
-                                    endDate = tournament.endDate,
-                                    tournamentName = tournament.name,
-                                    sport = tournament.category,
-                                    imageResId = imageRes,
-                                    onClick = { navController.navigate("tournament_detail_screen/${tournament.id}/false") }
-                                )
+                            }
+                        }
+                    }
+
+                    is TournamentsUiState.Success -> {
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            if (inProgressTournaments.isEmpty() && upcomingTournaments.isEmpty()) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(32.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "Aún no has creado ningún torneo",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = "Desliza hacia abajo para actualizar",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (inProgressTournaments.isNotEmpty()) {
+                                item {
+                                    Text(
+                                        text = "En curso (${inProgressTournaments.size})",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                                    )
+                                }
+                                items(inProgressTournaments) { tournament ->
+                                    val imageRes = when (tournament.category.lowercase()) {
+                                        "fútbol" -> R.drawable.img_futbol
+                                        "básquetbol" -> R.drawable.img_basquetbol
+                                        "voleybol" -> R.drawable.img_voleybol
+                                        else -> R.drawable.img_logo
+                                    }
+                                    TournamentCard(
+                                        startDate = tournament.startDate,
+                                        endDate = tournament.endDate,
+                                        tournamentName = tournament.name,
+                                        sport = tournament.category,
+                                        imageResId = imageRes,
+                                        onClick = { navController.navigate("tournament_detail_screen/${tournament.id}/false") }
+                                    )
+                                }
+                            }
+
+                            if (upcomingTournaments.isNotEmpty()) {
+                                item {
+                                    Text(
+                                        text = "Próximos (${upcomingTournaments.size})",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
+                                    )
+                                }
+                                items(upcomingTournaments) { tournament ->
+                                    val imageRes = when (tournament.category.lowercase()) {
+                                        "fútbol" -> R.drawable.img_futbol
+                                        "básquetbol" -> R.drawable.img_basquetbol
+                                        "voleybol" -> R.drawable.img_voleybol
+                                        else -> R.drawable.img_logo
+                                    }
+                                    TournamentCard(
+                                        startDate = tournament.startDate,
+                                        endDate = tournament.endDate,
+                                        tournamentName = tournament.name,
+                                        sport = tournament.category,
+                                        imageResId = imageRes,
+                                        onClick = { navController.navigate("tournament_detail_screen/${tournament.id}/false") }
+                                    )
+                                }
                             }
                         }
                     }
@@ -172,6 +240,7 @@ fun MyTournamentsScreen(
             }
         }
     }
+
 }
 
 @Preview(showBackground = true, showSystemUi = true)
