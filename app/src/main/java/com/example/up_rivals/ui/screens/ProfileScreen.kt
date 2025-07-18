@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.ui.window.Dialog
@@ -22,7 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -232,11 +235,38 @@ fun ProfileScreen(navController: NavController) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = SubtleGrey
                     )
-                    Text(
-                        "ID: ${user.id}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = SubtleGrey
-                    )
+                    // ID con botón de copiar
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            "ID: ${user.id}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = SubtleGrey,
+                            modifier = Modifier.weight(1f)
+                        )
+                        val clipboardManager = LocalClipboardManager.current
+                        IconButton(
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(user.id))
+                                // Mostrar un Toast para confirmar que se copió
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "ID copiado al portapapeles",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.ContentCopy,
+                                contentDescription = "Copiar ID",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(16.dp)) // Reducido de 24dp a 16dp
 
                     // --- El resto de la UI se queda igual ---

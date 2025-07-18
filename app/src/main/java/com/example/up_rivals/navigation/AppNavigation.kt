@@ -178,8 +178,14 @@ fun AppNavigation() {
 
                     // --- TODAS TUS RUTAS CORRECTAMENTE DEFINIDAS ---
 
-                    composable("activities_screen") { ActivitiesScreen(navController = navController) }
-                    composable("teams_screen") { TeamsScreen(navController = navController) }
+                    composable("activities_screen") {
+                        val onMenuClick: () -> Unit = { scope.launch { drawerState.open() } }
+                        ActivitiesScreen(navController = navController, onMenuClick = onMenuClick)
+                    }
+                    composable("teams_screen") {
+                        val onMenuClick: () -> Unit = { scope.launch { drawerState.open() } }
+                        TeamsScreen(navController = navController, onMenuClick = onMenuClick)
+                    }
                     composable("requests_screen") { RequestsScreen(navController = navController) }
                     composable("profile_screen") { ProfileScreen(navController = navController) }
                     composable("edit_profile_screen") { EditProfileScreen(navController = navController) }

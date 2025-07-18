@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,7 +48,10 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TeamsScreen(navController: NavController) {
+fun TeamsScreen(
+    navController: NavController,
+    onMenuClick: () -> Unit
+) {
     val viewModel: MyTeamsViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
 
@@ -64,7 +68,15 @@ fun TeamsScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mis Equipos", fontWeight = FontWeight.Bold) }
+                title = { Text("Mis Equipos", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menú"
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -266,6 +278,6 @@ fun TeamInfoCard(
 @Composable
 fun TeamsScreenPreview() {
     UPRivalsTheme {
-        TeamsScreen(rememberNavController())
+        TeamsScreen(rememberNavController(), onMenuClick = {})
     }
 }

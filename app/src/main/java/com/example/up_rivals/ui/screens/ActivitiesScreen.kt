@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,7 +34,10 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ActivitiesScreen(navController: NavController) {
+fun ActivitiesScreen(
+    navController: NavController,
+    onMenuClick: () -> Unit
+) {
     val viewModel: ActivitiesViewModel = viewModel()
     val pendingMatches by viewModel.pendingMatches.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -83,8 +87,8 @@ fun ActivitiesScreen(navController: NavController) {
             CenterAlignedTopAppBar(
                 title = { Text("Actividades", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver atrás")
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.Default.Menu, "Abrir menú")
                     }
                 }
             )
@@ -194,6 +198,6 @@ fun ActivitiesScreen(navController: NavController) {
 @Composable
 fun ActivitiesScreenPreview() {
     UPRivalsTheme {
-        ActivitiesScreen(rememberNavController())
+        ActivitiesScreen(rememberNavController(), onMenuClick = {})
     }
 }
