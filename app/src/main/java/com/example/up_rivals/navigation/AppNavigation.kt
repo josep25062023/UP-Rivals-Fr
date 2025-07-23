@@ -225,7 +225,7 @@ fun AppNavigation() {
                         )
                     }
 
-                                        // Ruta simplificada para navegación desde actividades
+                    // Ruta simplificada para navegación desde actividades
                     composable("tournament_detail/{tournamentId}") { backStackEntry ->
                         val tournamentId = backStackEntry.arguments?.getString("tournamentId") ?: ""
                         TournamentDetailScreen(

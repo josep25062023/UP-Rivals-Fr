@@ -1,3 +1,4 @@
+
 package com.example.up_rivals.network
 
 import com.example.up_rivals.network.dto.*
