@@ -78,7 +78,7 @@ fun MyTournamentsScreen(
                     // Eliminar el IconButton de refresh
                     IconButton(onClick = { navController.navigate("profile_screen") }) {
                         Image(
-                            painter = painterResource(id = R.drawable.img_logo),
+                            painter = painterResource(id = R.drawable.img_logo2),
                             contentDescription = "Perfil",
                             modifier = Modifier
                                 .size(32.dp)
@@ -194,7 +194,7 @@ fun MyTournamentsScreen(
                                         "fútbol" -> R.drawable.img_futbol
                                         "básquetbol" -> R.drawable.img_basquetbol
                                         "voleybol" -> R.drawable.img_voleybol
-                                        else -> R.drawable.img_logo
+                                        else -> R.drawable.img_logo2
                                     }
                                     TournamentCard(
                                         startDate = tournament.startDate,
@@ -222,7 +222,7 @@ fun MyTournamentsScreen(
                                         "fútbol" -> R.drawable.img_futbol
                                         "básquetbol" -> R.drawable.img_basquetbol
                                         "voleybol" -> R.drawable.img_voleybol
-                                        else -> R.drawable.img_logo
+                                        else -> R.drawable.img_logo2
                                     }
                                     TournamentCard(
                                         startDate = tournament.startDate,

@@ -173,7 +173,7 @@ fun ActivitiesScreen(
                         }
 
                         // Usar una imagen por defecto ya que no tenemos acceso a la categoría
-                        val imageRes = R.drawable.img_logo
+                        val imageRes = R.drawable.img_logo2
 
                         MatchCard(
                             tournamentName = match.tournament.name,

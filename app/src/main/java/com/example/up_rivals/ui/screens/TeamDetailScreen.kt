@@ -134,8 +134,8 @@ fun TeamDetailScreen(navController: NavController, teamId: String) {
                                     .data(teamDetail.logo)
                                     .crossfade(true)
                                     .build(),
-                                placeholder = painterResource(id = R.drawable.img_logo),
-                                error = painterResource(id = R.drawable.img_logo),
+                                placeholder = painterResource(id = R.drawable.img_logo2),
+                                error = painterResource(id = R.drawable.img_logo2),
                                 contentDescription = "Logo del Equipo",
                                 modifier = Modifier
                                     .size(90.dp)
@@ -243,8 +243,8 @@ fun TeamDetailScreen(navController: NavController, teamId: String) {
                             .data(currentState.teamDetail.logo)
                             .crossfade(true)
                             .build(),
-                        placeholder = painterResource(id = R.drawable.img_logo),
-                        error = painterResource(id = R.drawable.img_logo),
+                        placeholder = painterResource(id = R.drawable.img_logo2),
+                        error = painterResource(id = R.drawable.img_logo2),
                         contentDescription = "Logo del Equipo",
                         modifier = Modifier.size(300.dp),
                         contentScale = ContentScale.Fit

@@ -82,15 +82,15 @@ fun PlayerTournamentsScreen(
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(CircleShape),
-                                    placeholder = painterResource(id = R.drawable.img_logo),
-                                    error = painterResource(id = R.drawable.img_logo),
-                                    fallback = painterResource(id = R.drawable.img_logo),
+                                    placeholder = painterResource(id = R.drawable.img_logo2),
+                                    error = painterResource(id = R.drawable.img_logo2),
+                                    fallback = painterResource(id = R.drawable.img_logo2),
                                     contentScale = ContentScale.Crop
                                 )
                             }
                             else -> {
                                 Image(
-                                    painter = painterResource(id = R.drawable.img_logo),
+                                    painter = painterResource(id = R.drawable.img_logo2),
                                     contentDescription = "Perfil",
                                     modifier = Modifier
                                         .size(32.dp)
@@ -183,7 +183,7 @@ fun PlayerTournamentsScreen(
                                         "fútbol" -> R.drawable.img_futbol
                                         "básquetbol" -> R.drawable.img_basquetbol
                                         "voleybol" -> R.drawable.img_voleybol
-                                        else -> R.drawable.img_logo
+                                        else -> R.drawable.img_logo2
                                     }
                                     TournamentCard(
                                         startDate = tournament.startDate,
@@ -212,7 +212,7 @@ fun PlayerTournamentsScreen(
                                         "fútbol" -> R.drawable.img_futbol
                                         "básquetbol" -> R.drawable.img_basquetbol
                                         "voleybol" -> R.drawable.img_voleybol
-                                        else -> R.drawable.img_logo
+                                        else -> R.drawable.img_logo2
                                     }
                                     TournamentCard(
                                         startDate = tournament.startDate,

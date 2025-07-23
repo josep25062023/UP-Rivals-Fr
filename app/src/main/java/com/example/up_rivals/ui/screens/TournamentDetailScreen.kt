@@ -213,7 +213,7 @@ fun BannerAndTabs(tournament: Tournament, selectedTabIndex: Int, onTabClick: (In
             "fútbol" -> R.drawable.img_futbol
             "básquetbol" -> R.drawable.img_basquetbol
             "voleybol" -> R.drawable.img_voleybol
-            else -> R.drawable.img_logo
+            else -> R.drawable.img_logo2
         }
         Image(painter = painterResource(id = imageRes), contentDescription = "Banner del torneo", modifier = Modifier.fillMaxWidth().height(200.dp), contentScale = ContentScale.Crop)
         Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)))))
@@ -800,8 +800,8 @@ private fun StandingRow(position: Int, teamLogoUrl: String?, teamName: String, p
                     .data(teamLogoUrl)
                     .crossfade(true)
                     .build(),
-                placeholder = painterResource(id = R.drawable.img_logo),
-                error = painterResource(id = R.drawable.img_logo),
+                placeholder = painterResource(id = R.drawable.img_logo2),
+                error = painterResource(id = R.drawable.img_logo2),
                 contentDescription = "Logo de $teamName",
                 modifier = Modifier
                     .size(40.dp)
@@ -896,8 +896,8 @@ fun PendingMatchRow(
                 ) {
                     AsyncImage(
                         model = match.teamA.logo,
-                        placeholder = painterResource(id = R.drawable.img_logo),
-                        error = painterResource(id = R.drawable.img_logo),
+                        placeholder = painterResource(id = R.drawable.img_logo2),
+                        error = painterResource(id = R.drawable.img_logo2),
                         contentDescription = "Logo de ${match.teamA.name}",
                         modifier = Modifier
                             .size(36.dp)
@@ -957,8 +957,8 @@ fun PendingMatchRow(
 
                     AsyncImage(
                         model = match.teamB.logo,
-                        placeholder = painterResource(id = R.drawable.img_logo),
-                        error = painterResource(id = R.drawable.img_logo),
+                        placeholder = painterResource(id = R.drawable.img_logo2),
+                        error = painterResource(id = R.drawable.img_logo2),
                         contentDescription = "Logo de ${match.teamB.name}",
                         modifier = Modifier
                             .size(36.dp)
@@ -1116,8 +1116,8 @@ fun FinishedMatchRow(
                     Box {
                         AsyncImage(
                             model = match.teamA.logo,
-                            placeholder = painterResource(id = R.drawable.img_logo),
-                            error = painterResource(id = R.drawable.img_logo),
+                            placeholder = painterResource(id = R.drawable.img_logo2),
+                            error = painterResource(id = R.drawable.img_logo2),
                             contentDescription = "Logo de ${match.teamA.name}",
                             modifier = Modifier
                                 .size(40.dp)
@@ -1259,8 +1259,8 @@ fun FinishedMatchRow(
                     Box {
                         AsyncImage(
                             model = match.teamB.logo,
-                            placeholder = painterResource(id = R.drawable.img_logo),
-                            error = painterResource(id = R.drawable.img_logo),
+                            placeholder = painterResource(id = R.drawable.img_logo2),
+                            error = painterResource(id = R.drawable.img_logo2),
                             contentDescription = "Logo de ${match.teamB.name}",
                             modifier = Modifier
                                 .size(40.dp)

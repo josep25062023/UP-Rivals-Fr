@@ -51,6 +51,7 @@ import com.example.up_rivals.viewmodels.TournamentsViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import coil.compose.AsyncImage
+import com.example.up_rivals.UserRole
 import com.example.up_rivals.viewmodels.ProfileViewModel
 import com.example.up_rivals.viewmodels.ProfileUiState
 
@@ -58,7 +59,8 @@ import com.example.up_rivals.viewmodels.ProfileUiState
 @Composable
 fun TournamentsScreen(
     navController: NavController,
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    userRole: UserRole = UserRole.VISITOR // Agregar parámetro userRole
 ) {
     // 1. Obtenemos el ViewModel y todos los estados que necesitamos
     val viewModel: TournamentsViewModel = viewModel()
@@ -76,7 +78,9 @@ fun TournamentsScreen(
 
     // 3. Refrescar el perfil cuando la pantalla se vuelve visible
     LaunchedEffect(Unit) {
-        profileViewModel.loadProfile()
+        if (userRole != UserRole.VISITOR) {
+            profileViewModel.loadProfile()
+        }
     }
 
     Scaffold(
@@ -89,46 +93,49 @@ fun TournamentsScreen(
                     }
                 },
                 actions = {
-                    // Botón de refresh manual
-                    IconButton(
-                        onClick = {
-                            viewModel.loadTournaments()
-                            profileViewModel.loadProfile() // También refrescar el perfil
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Actualizar torneos",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    IconButton(onClick = { navController.navigate("profile_screen") }) {
-                        when (val state = profileUiState) {
-                            is ProfileUiState.Success -> {
-                                // Debug: Verificar el valor de profilePicture
-                                android.util.Log.d("TournamentsScreen", "Profile picture URL: '${state.user.profilePicture}'")
-
-                                AsyncImage(
-                                    model = state.user.profilePicture?.takeIf { it.isNotBlank() },
-                                    contentDescription = "Foto de perfil",
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape),
-                                    placeholder = painterResource(id = R.drawable.img_logo),
-                                    error = painterResource(id = R.drawable.img_logo),
-                                    fallback = painterResource(id = R.drawable.img_logo),
-                                    contentScale = ContentScale.Crop
-                                )
+                    // Solo mostrar botones para usuarios registrados (no visitantes)
+                    if (userRole != UserRole.VISITOR) {
+                        // Botón de refresh manual
+                        IconButton(
+                            onClick = {
+                                viewModel.loadTournaments()
+                                profileViewModel.loadProfile()
                             }
-                            else -> {
-                                Image(
-                                    painter = painterResource(id = R.drawable.img_logo),
-                                    contentDescription = "Perfil",
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Actualizar torneos",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        IconButton(onClick = { navController.navigate("profile_screen") }) {
+                            when (val state = profileUiState) {
+                                is ProfileUiState.Success -> {
+                                    // Debug: Verificar el valor de profilePicture
+                                    android.util.Log.d("TournamentsScreen", "Profile picture URL: '${state.user.profilePicture}'")
+
+                                    AsyncImage(
+                                        model = state.user.profilePicture?.takeIf { it.isNotBlank() },
+                                        contentDescription = "Foto de perfil",
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape),
+                                        placeholder = painterResource(id = R.drawable.img_logo),
+                                        error = painterResource(id = R.drawable.img_logo),
+                                        fallback = painterResource(id = R.drawable.img_logo),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                                else -> {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.img_logo),
+                                        contentDescription = "Perfil",
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                    )
+                                }
                             }
                         }
                     }
@@ -218,7 +225,7 @@ fun TournamentsScreen(
                                         "fútbol" -> R.drawable.img_futbol
                                         "básquetbol" -> R.drawable.img_basquetbol
                                         "voleybol" -> R.drawable.img_voleybol
-                                        else -> R.drawable.img_logo
+                                        else -> R.drawable.img_logo2
                                     }
                                     TournamentCard(
                                         startDate = tournament.startDate,
@@ -249,7 +256,7 @@ fun TournamentsScreen(
                                         "fútbol" -> R.drawable.img_futbol
                                         "básquetbol" -> R.drawable.img_basquetbol
                                         "voleybol" -> R.drawable.img_voleybol
-                                        else -> R.drawable.img_logo
+                                        else -> R.drawable.img_logo2
                                     }
                                     TournamentCard(
                                         startDate = tournament.startDate,

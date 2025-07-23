@@ -135,8 +135,8 @@ fun ProfileScreen(navController: NavController) {
                     is ProfileUiState.Success -> {
                         AsyncImage(
                             model = state.user.profilePicture,
-                            placeholder = painterResource(id = R.drawable.img_logo),
-                            error = painterResource(id = R.drawable.img_logo),
+                            placeholder = painterResource(id = R.drawable.img_logo2),
+                            error = painterResource(id = R.drawable.img_logo2),
                             contentDescription = "Foto de perfil",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
@@ -144,7 +144,7 @@ fun ProfileScreen(navController: NavController) {
                     }
                     else -> {
                         Image(
-                            painter = painterResource(id = R.drawable.img_logo),
+                            painter = painterResource(id = R.drawable.img_logo2),
                             contentDescription = "Foto de perfil",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
@@ -213,8 +213,8 @@ fun ProfileScreen(navController: NavController) {
                     // --- 3. Mostramos la información real del usuario ---
                     AsyncImage(
                         model = user.profilePicture,
-                        placeholder = painterResource(id = R.drawable.img_logo),
-                        error = painterResource(id = R.drawable.img_logo),
+                        placeholder = painterResource(id = R.drawable.img_logo2),
+                        error = painterResource(id = R.drawable.img_logo2),
                         contentDescription = "Foto de perfil",
                         modifier = Modifier
                             .size(100.dp)

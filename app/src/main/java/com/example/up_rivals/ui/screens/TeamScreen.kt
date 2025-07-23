@@ -188,8 +188,8 @@ fun TeamInfoCard(
                         .data(team.teamLogo) // ✅ Usar team.logo
                         .crossfade(true)
                         .build(),
-                    placeholder = painterResource(id = R.drawable.img_logo),
-                    error = painterResource(id = R.drawable.img_logo),
+                    placeholder = painterResource(id = R.drawable.img_logo2),
+                    error = painterResource(id = R.drawable.img_logo2),
                     contentDescription = "Logo de ${team.teamName}", // ✅ Usar team.name
                     modifier = Modifier
                         .size(64.dp)

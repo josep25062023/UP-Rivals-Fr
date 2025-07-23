@@ -124,8 +124,8 @@ fun RequestCard(
                             .data(teamLogoUrl)
                             .crossfade(true)
                             .build(),
-                        placeholder = painterResource(id = R.drawable.img_logo),
-                        error = painterResource(id = R.drawable.img_logo),
+                        placeholder = painterResource(id = R.drawable.img_logo2),
+                        error = painterResource(id = R.drawable.img_logo2),
                         contentDescription = "Logo del equipo $teamName",
                         modifier = Modifier
                             .size(64.dp)
