@@ -9,7 +9,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.up_rivals"
+        applicationId = "com.MictlanLabs.UP_rivals"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
